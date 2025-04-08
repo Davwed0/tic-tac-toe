@@ -1,0 +1,240 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public enum PieceType
+{
+    PAWN,
+    ROOK,
+    KNIGHT,
+    BISHOP,
+    QUEEN,
+    KING
+}
+
+public enum PlayerColor
+{
+    WHITE = 0,
+    BLACK = 1,
+    EMPTY = -1
+}
+
+public class ChessPiece : MonoBehaviour
+{
+    public PieceType pieceType;
+    public PlayerColor player;
+    public bool isOnBoard;
+    public int index;
+
+    // Player WHITE is white and Player BLACK is black
+
+    public Mesh pawnMesh, rookMesh, knightMesh, bishopMesh, queenMesh, kingMesh;
+    public Material whiteMaterial, blackMaterial, hoverMaterial;
+
+    void Update()
+    {
+        SetPieceModel();
+        SetPieceColor();
+    }
+
+    private void OnMouseDown()
+    {
+        if (GameManager.Instance.currentPlayer == player) GameManager.Instance.selectedPiece = this;
+    }
+
+    public void PlacePiece(HitBox hitBox)
+    {
+        isOnBoard = true;
+        transform.position = hitBox.transform.position;
+        transform.SetParent(hitBox.transform);
+
+        PlayerColor winner = GameManager.Instance.board.CheckWin();
+        if (winner != PlayerColor.EMPTY)
+        {
+            Debug.Log($"Player {winner} has won!");
+            GameManager.Instance.board.scores[(int)winner].IncrementScore();
+            GameManager.Instance.board.Reset();
+        }
+        else
+        {
+            GameManager.Instance.IncrementTurn();
+        }
+
+        GameManager.Instance.selectedPiece = null;
+    }
+
+
+    public List<int[]> ValidMoves()
+    {
+        int boardSize = GameManager.Instance.board.boardSize;
+        PlayerColor[,] boardState = GameManager.Instance.board.GetBoardState();
+
+        HitBox currentHitBox = transform.parent.GetComponent<HitBox>();
+        if (currentHitBox == null) return new List<int[]>();
+        int[] currentPosition = currentHitBox.GetPosition();
+
+        List<int[]> validMoves = new List<int[]>();
+
+        switch (pieceType)
+        {
+            case PieceType.PAWN:
+                int[][] directions = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 } };
+
+                foreach (var direction in directions)
+                {
+                    int newRow = currentPosition[0] + direction[0];
+                    int newColumn = currentPosition[1] + direction[1];
+
+                    if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
+                    {
+                        if (boardState[newRow, newColumn] != player)
+                        {
+                            validMoves.Add(new[] { newRow, newColumn });
+                        }
+                    }
+                }
+
+                int forwardRow = currentPosition[0] + (player == PlayerColor.WHITE ? 1 : -1);
+                if (forwardRow >= 0 && forwardRow < boardSize)
+                {
+                    validMoves.Add(new[] { forwardRow, currentPosition[1] });
+                }
+
+                break;
+            case PieceType.ROOK:
+                int[][] rookDirections = { new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 } };
+
+                foreach (var direction in rookDirections)
+                {
+                    for (int step = 1; step < boardSize; step++)
+                    {
+                        int newRow = currentPosition[0] + direction[0] * step;
+                        int newColumn = currentPosition[1] + direction[1] * step;
+
+                        if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
+                            break;
+                        else if (boardState[newRow, newColumn] == player)
+                            break;
+                        else if (boardState[newRow, newColumn] != PlayerColor.EMPTY)
+                        {
+                            validMoves.Add(new[] { newRow, newColumn });
+                            break;
+                        }
+
+                        validMoves.Add(new[] { newRow, newColumn });
+                    }
+                }
+                break;
+            case PieceType.KNIGHT:
+                int[][] knightMoves = {
+                    new[] { 2, 1 }, new[] { 2, -1 }, new[] { -2, 1 }, new[] { -2, -1 },
+                    new[] { 1, 2 }, new[] { 1, -2 }, new[] { -1, 2 }, new[] { -1, -2 }
+                };
+
+                foreach (var move in knightMoves)
+                {
+                    int newRow = currentPosition[0] + move[0];
+                    int newColumn = currentPosition[1] + move[1];
+
+                    if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
+                    {
+                        validMoves.Add(new[] { newRow, newColumn });
+                    }
+                }
+                break;
+            case PieceType.BISHOP:
+                int[][] bishopDirections = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 } };
+
+                foreach (var direction in bishopDirections)
+                {
+                    for (int step = 1; step < boardSize; step++)
+                    {
+                        int newRow = currentPosition[0] + direction[0] * step;
+                        int newColumn = currentPosition[1] + direction[1] * step;
+
+                        if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
+                            break;
+
+                        validMoves.Add(new[] { newRow, newColumn });
+                    }
+                }
+                break;
+            case PieceType.QUEEN:
+                int[][] queenDirections = {
+                    new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 },
+                    new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }
+                };
+
+                foreach (var direction in queenDirections)
+                {
+                    for (int step = 1; step < boardSize; step++)
+                    {
+                        int newRow = currentPosition[0] + direction[0] * step;
+                        int newColumn = currentPosition[1] + direction[1] * step;
+
+                        if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
+                            break;
+
+                        validMoves.Add(new[] { newRow, newColumn });
+                    }
+                }
+                break;
+            case PieceType.KING:
+                int[][] kingMoves = {
+                    new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 },
+                    new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }
+                };
+
+                foreach (var move in kingMoves)
+                {
+                    int newRow = currentPosition[0] + move[0];
+                    int newColumn = currentPosition[1] + move[1];
+
+                    if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
+                    {
+                        validMoves.Add(new[] { newRow, newColumn });
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        return validMoves;
+    }
+
+    private void SetPieceModel()
+    {
+        Mesh selectedMesh = pieceType switch
+        {
+            PieceType.PAWN => pawnMesh,
+            PieceType.ROOK => rookMesh,
+            PieceType.KNIGHT => knightMesh,
+            PieceType.BISHOP => bishopMesh,
+            PieceType.QUEEN => queenMesh,
+            PieceType.KING => kingMesh,
+            _ => null
+        };
+
+        if (selectedMesh != null)
+        {
+            GetComponent<MeshFilter>().mesh = selectedMesh;
+            GetComponent<MeshCollider>().sharedMesh = selectedMesh;
+        }
+    }
+
+    private void SetPieceColor()
+    {
+        Renderer renderer = GetComponent<Renderer>();
+        renderer.material = player switch
+        {
+            PlayerColor.WHITE => whiteMaterial,
+            PlayerColor.BLACK => blackMaterial,
+            _ => null
+        };
+
+        if (GameManager.Instance.selectedPiece == this)
+        {
+            renderer.material = hoverMaterial;
+        }
+    }
+}
