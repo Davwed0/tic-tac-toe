@@ -14,11 +14,15 @@ public class Board : MonoBehaviour
     public GameObject pieceSlotPrefab;
     public GameObject scorePrefab;
     public GameObject boardMesh;
+    public GameObject gridBoxPrefab;
 
     public HitBox[,] hitBoxes;
+    public GameObject[,] gridBoxes;
     public ChessPiece[,] chessPieces;
     public PieceSlot[] pieceSlots;
     public Score[] scores;
+
+    public Material whiteMaterial, blackMaterial, highlightMaterial;
 
     // Queues for pieces when hands are full
     private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
@@ -27,6 +31,7 @@ public class Board : MonoBehaviour
     public void InitializeBoard()
     {
         hitBoxes = new HitBox[boardSize, boardSize];
+        gridBoxes = new GameObject[boardSize, boardSize];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
         float totalGap = hitBoxSize + hitBoxGap;
         float offset = (boardSize - 1) * totalGap / 2.0f;
@@ -37,7 +42,12 @@ public class Board : MonoBehaviour
             {
                 float xPos = row * totalGap - offset;
                 float yPos = column * totalGap - offset;
-                GameObject hitBoxObject = Instantiate(hitBoxPrefab, new Vector3(xPos, 0.35f, yPos), Quaternion.identity);
+                GameObject gridBoxObject = Instantiate(gridBoxPrefab, new Vector3(xPos, 0.25f, yPos), Quaternion.identity);
+                gridBoxObject.transform.SetParent(transform);
+                gridBoxObject.GetComponent<Renderer>().material = ((row + column) % 2 == 0) ? blackMaterial : whiteMaterial;
+                gridBoxes[row, column] = gridBoxObject.gameObject;
+
+                GameObject hitBoxObject = Instantiate(hitBoxPrefab, new Vector3(xPos, 0.54f, yPos), Quaternion.identity);
                 hitBoxObject.transform.SetParent(transform);
                 hitBoxObject.layer = LayerMask.NameToLayer("Outlined");
                 hitBoxObject.transform.GetChild(0).gameObject.layer = LayerMask.NameToLayer("Outlined");
@@ -168,28 +178,19 @@ public class Board : MonoBehaviour
         return false;
     }
 
-    public PlayerColor CheckWin()
+    public (PlayerColor winner, List<Vector2Int> positions) CheckWin()
     {
         PlayerColor[,] boardState = GetBoardState();
-
-        // print current turn then the board state
-        Debug.Log($"Current Turn: {GameManager.Instance.currentTurn}");
-        for (int row = 0; row < boardSize; row++)
-        {
-            string rowString = "";
-            for (int col = 0; col < boardSize; col++)
-            {
-                rowString += (int)boardState[row, col] + " ";
-            }
-            Debug.Log(rowString);
-        }
+        List<Vector2Int> winningPositions = new List<Vector2Int> { };
 
         // Check rows for a winner
         for (int row = 0; row < 3; row++)
         {
             if (boardState[row, 0] != PlayerColor.EMPTY && boardState[row, 0] == boardState[row, 1] && boardState[row, 1] == boardState[row, 2])
             {
-                return boardState[row, 0]; // Return the winning player (WHITE or BLACK)
+                for (int col = 0; col < 3; col++)
+                    winningPositions.Add(new Vector2Int(row, col));
+                return (winner: boardState[row, 0], positions: winningPositions); // Return the winning player (WHITE or BLACK)
             }
         }
 
@@ -198,24 +199,30 @@ public class Board : MonoBehaviour
         {
             if (boardState[0, col] != PlayerColor.EMPTY && boardState[0, col] == boardState[1, col] && boardState[1, col] == boardState[2, col])
             {
-                return boardState[0, col]; // Return the winning player (WHITE or BLACK)
+                for (int row = 0; row < 3; row++)
+                    winningPositions.Add(new Vector2Int(row, col));
+                return (winner: boardState[0, col], positions: winningPositions); // Return the winning player (WHITE or BLACK)
             }
         }
 
         // Check first diagonal (top-left to bottom-right)
         if (boardState[0, 0] != PlayerColor.EMPTY && boardState[0, 0] == boardState[1, 1] && boardState[1, 1] == boardState[2, 2])
         {
-            return boardState[0, 0]; // Return the winning player (WHITE or BLACK)
+            for (int i = 0; i < 3; i++)
+                winningPositions.Add(new Vector2Int(i, i));
+            return (winner: boardState[0, 0], positions: winningPositions); // Return the winning player (WHITE or BLACK)
         }
 
         // Check second diagonal (top-right to bottom-left)
         if (boardState[0, 2] != PlayerColor.EMPTY && boardState[0, 2] == boardState[1, 1] && boardState[1, 1] == boardState[2, 0])
         {
-            return boardState[0, 2]; // Return the winning player (WHITE or BLACK)
+            for (int i = 0; i < 3; i++)
+                winningPositions.Add(new Vector2Int(i, 2 - i));
+            return (winner: boardState[0, 2], positions: winningPositions); // Return the winning player (WHITE or BLACK)
         }
 
         // If no winner, return EMPTY
-        return PlayerColor.EMPTY;
+        return (winner: PlayerColor.EMPTY, positions: null);
     }
 
     public PlayerColor[,] GetBoardState()
@@ -246,36 +253,23 @@ public class Board : MonoBehaviour
                     Destroy(piece.gameObject);
                 }
                 hitBoxes[row, col].Reset();
+                gridBoxes[row, col].GetComponent<Renderer>().material = ((row + col) % 2 == 0) ? blackMaterial : whiteMaterial;
+
             }
         }
 
-        // Reset the pieces in hand
-        for (int i = 0; i < handSize; i++)
+        for (int hand = 0; hand < handSize; hand++)
         {
-            for (int j = 0; j < 2; j++)
-            {
-                // If some pieces were destroyed, create new ones
-                if (chessPieces[i, j] == null || !chessPieces[i, j].gameObject)
-                {
-                    PlayerColor player = (PlayerColor)j;
-                    PieceType randomPieceType = (PieceType)Random.Range(0, 6);
+            // Destroy any pieces in the hands
+            Destroy(chessPieces[hand, 0].gameObject);
+            Destroy(chessPieces[hand, 1].gameObject);
 
-                    float hitBoxSize = hitBoxPrefab.transform.localScale.x;
-                    float totalGap = hitBoxSize + hitBoxGap;
-                    float offsetX = (boardSize * totalGap) / 2 + pad;
-                    float offsetY = (handSize * hitBoxSize) / 2;
-
-                    float yPos = j == 0 ?
-                        i * hitBoxSize - offsetY :
-                        (handSize - i - 1) * hitBoxSize - offsetY;
-
-                    float xPos = (j == 0 ? 1 : -1) * offsetX;
-                    float yPositionOffset = j == 0 ? 2 : 0;
-
-                    chessPieces[i, j] = CreatePiece(xPos, yPos + yPositionOffset, randomPieceType, i, player);
-                }
-            }
+            chessPieces[hand, 0] = null;
+            chessPieces[hand, 1] = null;
         }
+
+
+        InitializePieces();
 
         GameManager.Instance.currentTurn = 0;
         GameManager.Instance.currentPlayer = PlayerColor.WHITE;
@@ -361,5 +355,32 @@ public class Board : MonoBehaviour
         PieceType randomPieceType = (PieceType)Random.Range(0, 6);
         AddNewPiece(PlayerColor.WHITE, randomPieceType);
         AddNewPiece(PlayerColor.BLACK, randomPieceType);
+    }
+
+    public void HighlightWinningPositions(List<Vector2Int> positions)
+    {
+        foreach (Vector2Int pos in positions)
+        {
+            Renderer renderer = gridBoxes[pos.x, pos.y].GetComponent<Renderer>();
+            Material originalMaterial = renderer.material;
+            Color targetColor = Color.red;
+
+            // Start a coroutine to slowly change the color
+            StartCoroutine(ColorChangeAnimation(renderer, originalMaterial.color, targetColor, 0.3f));
+        }
+    }
+
+    private System.Collections.IEnumerator ColorChangeAnimation(Renderer renderer, Color startColor, Color targetColor, float duration)
+    {
+        float elapsedTime = 0;
+
+        while (elapsedTime < duration)
+        {
+            renderer.material.color = Color.Lerp(startColor, targetColor, elapsedTime / duration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        renderer.material.color = targetColor;
     }
 }

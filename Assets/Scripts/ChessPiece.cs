@@ -63,7 +63,7 @@ public class ChessPiece : MonoBehaviour
         switch (pieceType)
         {
             case PieceType.PAWN:
-                int forwardVector = player == PlayerColor.WHITE ? 1 : -1;
+                int forwardVector = player == PlayerColor.WHITE ? -1 : 1;
                 int[][] directions = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }, new[] { forwardVector, 0 } };
 
                 foreach (var direction in directions)

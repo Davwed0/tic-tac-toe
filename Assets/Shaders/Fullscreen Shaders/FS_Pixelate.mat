@@ -37,7 +37,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Size: 512
+    - _Size: 448
     - _Thickness: 0.005
     - _Use_Bilinear_Filtering: 1
     m_Colors:

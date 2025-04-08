@@ -39,6 +39,11 @@ public class HitBox : MonoBehaviour
     {
         GetComponent<Collider>().enabled = true;
         tile.GetComponent<Renderer>().enabled = true;
+
+        if (player != PlayerColor.EMPTY)
+        {
+            tile.transform.localScale = new Vector3(0.8f, 0.1f, 0.8f);
+        }
     }
 
     public void Destroy()

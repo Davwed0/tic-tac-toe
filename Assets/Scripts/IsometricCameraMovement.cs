@@ -7,7 +7,7 @@ public class IsometricCameraMovement : MonoBehaviour
     [SerializeField] private float minZoom = 5f;
     [SerializeField] private float maxZoom = 15f;
 
-    private float targetAngle = 45f;
+    private float targetAngle = 225f;
     private float currentAngle = 0f;
 
     private const float SNAP_ANGLE = 45f;

@@ -27,6 +27,15 @@ public class PlacePieceCommand : ICommand
         capturedPiece = targetHitBox.GetPiece();
         if (capturedPiece != null)
         {
+            // Play capture sound
+            AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+            if (audioSource != null)
+            {
+                AudioClip captureSound = Resources.Load<AudioClip>("Audio/capture");
+                if (captureSound != null)
+                    audioSource.PlayOneShot(captureSound);
+            }
+
             // Store information about captured piece for potential undo
             capturedPiecePosition = capturedPiece.transform.position;
             capturedPieceParent = capturedPiece.transform.parent;
@@ -39,6 +48,17 @@ public class PlacePieceCommand : ICommand
             Object.Destroy(capturedPiece.gameObject);
 
             GameManager.Instance.board.CheckPieceQueues();
+        }
+        else
+        {
+            // Play move sound (no capture)
+            AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+            if (audioSource != null)
+            {
+                AudioClip moveSound = Resources.Load<AudioClip>("Audio/move-self");
+                if (moveSound != null)
+                    audioSource.PlayOneShot(moveSound);
+            }
         }
 
         // Place the piece
@@ -56,6 +76,7 @@ public class PlacePieceCommand : ICommand
 
         GameManager.Instance.selectedPiece = null;
     }
+
 
     public void Undo()
     {

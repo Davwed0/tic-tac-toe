@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class PlayerTurnState : GameState
 {
@@ -46,10 +47,12 @@ public class PlayerTurnState : GameState
         PlayerColor nextPlayer = (currentPlayer == PlayerColor.WHITE) ? PlayerColor.BLACK : PlayerColor.WHITE;
 
         // Check if there's a winner before changing player
-        PlayerColor winner = GameManager.Instance.board.CheckWin();
+        var result = GameManager.Instance.board.CheckWin();
+        PlayerColor winner = result.winner;
+        List<Vector2Int> positions = result.positions;
         if (winner != PlayerColor.EMPTY)
         {
-            stateMachine.ChangeState(new GameOverState(stateMachine, winner));
+            stateMachine.ChangeState(new GameOverState(stateMachine, winner, positions));
         }
         else
         {
