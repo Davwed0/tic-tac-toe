@@ -1,15 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
     public Board board;
-
+    public GameStateMachine stateMachine;
     public PlayerColor currentPlayer = PlayerColor.WHITE;
     public int currentTurn = 0;
     public ChessPiece selectedPiece;
+
+    // Command history for undo/redo functionality
+    private Stack<ICommand> commandHistory = new Stack<ICommand>();
+    private Stack<ICommand> redoHistory = new Stack<ICommand>();
 
     private void Awake()
     {
@@ -18,6 +23,9 @@ public class GameManager : MonoBehaviour
             Instance = this;
             currentPlayer = PlayerColor.WHITE;
             currentTurn = 0;
+
+            // Initialize state machine
+            stateMachine = new GameStateMachine();
         }
         else
         {
@@ -28,19 +36,38 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         board = GameObject.Find("Board").GetComponent<Board>();
-        Debug.Log($"Game started with player: {currentPlayer}");
+        stateMachine.Initialize(new InitState(stateMachine));
     }
 
     private void Update()
     {
-        if (selectedPiece != null)
+        stateMachine.Update();
+    }
+
+    public void ExecuteCommand(ICommand command)
+    {
+        command.Execute();
+        commandHistory.Push(command);
+        redoHistory.Clear();
+    }
+
+    public void Undo()
+    {
+        if (commandHistory.Count > 0)
         {
-            DestroyHitBoxes();
-            RenderValidHitBoxes();
+            ICommand command = commandHistory.Pop();
+            command.Undo();
+            redoHistory.Push(command);
         }
-        else
+    }
+
+    public void Redo()
+    {
+        if (redoHistory.Count > 0)
         {
-            DestroyHitBoxes();
+            ICommand command = redoHistory.Pop();
+            command.Execute();
+            commandHistory.Push(command);
         }
     }
 
@@ -50,12 +77,13 @@ public class GameManager : MonoBehaviour
         currentPlayer = currentPlayer == PlayerColor.WHITE ? PlayerColor.BLACK : PlayerColor.WHITE;
     }
 
-    private void RenderValidHitBoxes()
+    public void RenderValidMoves()
     {
+        DestroyHitBoxes();
+
         if (selectedPiece == null) return;
         List<int[]> pieceValidMoves = selectedPiece.ValidMoves();
 
-        GameObject selectedObject = this.selectedPiece.gameObject;
         if (pieceValidMoves == null) return;
 
         for (int i = 0; i < pieceValidMoves.Count; i++)
@@ -63,11 +91,17 @@ public class GameManager : MonoBehaviour
             int[] move = pieceValidMoves[i];
             int row = move[0];
             int column = move[1];
-            HitBox hitBox = board.hitBoxes[row, column];
 
-            if (hitBox.GetPlayer() != selectedPiece.player || hitBox.GetPlayer() == PlayerColor.EMPTY)
+            // Make sure indices are valid for the board
+            if (row >= 0 && row < board.boardSize && column >= 0 && column < board.boardSize)
             {
-                board.hitBoxes[row, column].Render();
+                HitBox hitBox = board.hitBoxes[row, column];
+                if (hitBox.GetPlayer() != selectedPiece.player)
+                {
+                    // Check if there's a piece to capture
+                    bool isCapture = hitBox.GetPiece() != null && hitBox.GetPlayer() != PlayerColor.EMPTY;
+                    board.hitBoxes[row, column].Render(isCapture);
+                }
             }
         }
 
@@ -79,17 +113,15 @@ public class GameManager : MonoBehaviour
                 {
                     if (board.hitBoxes[row, column].GetPlayer() == PlayerColor.EMPTY)
                     {
-                        board.hitBoxes[row, column].Render();
+                        board.hitBoxes[row, column].Render(false);
                     }
                 }
             }
         }
     }
 
-    private void DestroyHitBoxes()
+    public void DestroyHitBoxes()
     {
-        GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
-
         for (int row = 0; row < board.boardSize; row++)
         {
             for (int column = 0; column < board.boardSize; column++)
@@ -97,5 +129,12 @@ public class GameManager : MonoBehaviour
                 board.hitBoxes[row, column].Destroy();
             }
         }
+    }
+
+    public IEnumerator StartNewGame(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        board.Reset();
+        stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
     }
 }

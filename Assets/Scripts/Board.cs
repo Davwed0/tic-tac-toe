@@ -20,15 +20,11 @@ public class Board : MonoBehaviour
     public PieceSlot[] pieceSlots;
     public Score[] scores;
 
-    private void Awake()
-    {
-        InitializeBoard();
-        InitializePieces();
-        InitializeSlots();
-        InitializeScores();
-    }
+    // Queues for pieces when hands are full
+    private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
+    private Queue<PieceType> blackPlayerQueue = new Queue<PieceType>();
 
-    private void InitializeBoard()
+    public void InitializeBoard()
     {
         hitBoxes = new HitBox[boardSize, boardSize];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
@@ -54,7 +50,7 @@ public class Board : MonoBehaviour
         }
     }
 
-    private void InitializePieces()
+    public void InitializePieces()
     {
         chessPieces = new ChessPiece[handSize, 2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
@@ -73,7 +69,7 @@ public class Board : MonoBehaviour
         }
     }
 
-    private void InitializeSlots()
+    public void InitializeSlots()
     {
         pieceSlots = new PieceSlot[2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
@@ -94,7 +90,7 @@ public class Board : MonoBehaviour
         }
     }
 
-    private void InitializeScores()
+    public void InitializeScores()
     {
         scores = new Score[2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
@@ -239,33 +235,131 @@ public class Board : MonoBehaviour
 
     public void Reset()
     {
-        for (int i = 0; i < handSize; i++)
-        {
-            for (int j = 0; j < 2; j++)
-            {
-                chessPieces[i, j].isOnBoard = false;
-                MovePieceToHand(chessPieces[i, j], (PlayerColor)j);
-            }
-        }
-
+        // First destroy any pieces on the board
         for (int row = 0; row < boardSize; row++)
         {
             for (int col = 0; col < boardSize; col++)
             {
+                ChessPiece piece = hitBoxes[row, col].GetPiece();
+                if (piece != null)
+                {
+                    Destroy(piece.gameObject);
+                }
                 hitBoxes[row, col].Reset();
             }
         }
 
-        // rerandomize pieces
+        // Reset the pieces in hand
         for (int i = 0; i < handSize; i++)
         {
-            PieceType randomPieceType = (PieceType)Random.Range(0, 6);
-            chessPieces[i, 0].pieceType = randomPieceType;
-            chessPieces[i, 1].pieceType = randomPieceType;
+            for (int j = 0; j < 2; j++)
+            {
+                // If some pieces were destroyed, create new ones
+                if (chessPieces[i, j] == null || !chessPieces[i, j].gameObject)
+                {
+                    PlayerColor player = (PlayerColor)j;
+                    PieceType randomPieceType = (PieceType)Random.Range(0, 6);
+
+                    float hitBoxSize = hitBoxPrefab.transform.localScale.x;
+                    float totalGap = hitBoxSize + hitBoxGap;
+                    float offsetX = (boardSize * totalGap) / 2 + pad;
+                    float offsetY = (handSize * hitBoxSize) / 2;
+
+                    float yPos = j == 0 ?
+                        i * hitBoxSize - offsetY :
+                        (handSize - i - 1) * hitBoxSize - offsetY;
+
+                    float xPos = (j == 0 ? 1 : -1) * offsetX;
+                    float yPositionOffset = j == 0 ? 2 : 0;
+
+                    chessPieces[i, j] = CreatePiece(xPos, yPos + yPositionOffset, randomPieceType, i, player);
+                }
+            }
         }
 
         GameManager.Instance.currentTurn = 0;
         GameManager.Instance.currentPlayer = PlayerColor.WHITE;
         GameManager.Instance.selectedPiece = null;
+    }
+
+    // Add a new piece to the player's hand or queue if hand is full
+    public void AddNewPiece(PlayerColor player, PieceType piece)
+    {
+        // Try to add directly to hand, or queue if hand is full
+        bool added = AddPieceToHand(player, piece);
+        if (!added)
+        {
+            // Queue the piece if hand is full
+            if (player == PlayerColor.WHITE)
+                whitePlayerQueue.Enqueue(piece);
+            else
+                blackPlayerQueue.Enqueue(piece);
+
+            Debug.Log($"Queued a {piece} for player {player}");
+        }
+    }
+
+    // Try to add a piece to the player's hand, return true if successful
+    public bool AddPieceToHand(PlayerColor player, PieceType pieceType)
+    {
+        int playerIndex = (int)player;
+
+        // Check if there's an empty slot in the hand
+        for (int i = 0; i < handSize; i++)
+        {
+            if (chessPieces[i, playerIndex] == null || !chessPieces[i, playerIndex].gameObject)
+            {
+                // Create the piece in the empty slot
+                float hitBoxSize = hitBoxPrefab.transform.localScale.x;
+                float totalGap = hitBoxSize + hitBoxGap;
+                float offsetX = (boardSize * totalGap) / 2 + pad;
+                float offsetY = (handSize * hitBoxSize) / 2;
+
+                float yPos = playerIndex == 0 ?
+                    i * hitBoxSize - offsetY :
+                    (handSize - i - 1) * hitBoxSize - offsetY;
+
+                float xPos = (playerIndex == 0 ? 1 : -1) * offsetX;
+                float yPositionOffset = playerIndex == 0 ? 2 : 0;
+
+                chessPieces[i, playerIndex] = CreatePiece(xPos, yPos + yPositionOffset, pieceType, i, player);
+                Debug.Log($"Added a {pieceType} to player {player}'s hand at position {i}");
+                return true;
+            }
+        }
+
+        return false; // Hand is full
+    }
+
+    // Check queues when a piece is removed from hand (after placement or destruction)
+    public void CheckPieceQueue(PlayerColor player)
+    {
+        Queue<PieceType> queue = player == PlayerColor.WHITE ? whitePlayerQueue : blackPlayerQueue;
+
+        if (queue.Count > 0)
+        {
+            PieceType nextPiece = queue.Dequeue();
+            bool added = AddPieceToHand(player, nextPiece);
+
+            if (added)
+                Debug.Log($"Added queued {nextPiece} to player {player}'s hand");
+            else
+                Debug.Log($"Failed to add queued {nextPiece} to player {player}'s hand, putting it back in queue");
+            queue.Enqueue(nextPiece);
+        }
+    }
+
+    public void CheckPieceQueues()
+    {
+        CheckPieceQueue(PlayerColor.WHITE);
+        CheckPieceQueue(PlayerColor.BLACK);
+    }
+
+    // Generate new pieces for both players at end of a full turn
+    public void GenerateNewPieces()
+    {
+        PieceType randomPieceType = (PieceType)Random.Range(0, 6);
+        AddNewPiece(PlayerColor.WHITE, randomPieceType);
+        AddNewPiece(PlayerColor.BLACK, randomPieceType);
     }
 }

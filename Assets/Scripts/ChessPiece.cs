@@ -25,8 +25,6 @@ public class ChessPiece : MonoBehaviour
     public bool isOnBoard;
     public int index;
 
-    // Player WHITE is white and Player BLACK is black
-
     public Mesh pawnMesh, rookMesh, knightMesh, bishopMesh, queenMesh, kingMesh;
     public Material whiteMaterial, blackMaterial, hoverMaterial;
 
@@ -38,30 +36,18 @@ public class ChessPiece : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (GameManager.Instance.currentPlayer == player) GameManager.Instance.selectedPiece = this;
+        if (GameManager.Instance.currentPlayer == player)
+        {
+            ICommand command = new SelectPieceCommand(this);
+            GameManager.Instance.ExecuteCommand(command);
+        }
     }
 
     public void PlacePiece(HitBox hitBox)
     {
-        isOnBoard = true;
-        transform.position = hitBox.transform.position;
-        transform.SetParent(hitBox.transform);
-
-        PlayerColor winner = GameManager.Instance.board.CheckWin();
-        if (winner != PlayerColor.EMPTY)
-        {
-            Debug.Log($"Player {winner} has won!");
-            GameManager.Instance.board.scores[(int)winner].IncrementScore();
-            GameManager.Instance.board.Reset();
-        }
-        else
-        {
-            GameManager.Instance.IncrementTurn();
-        }
-
-        GameManager.Instance.selectedPiece = null;
+        ICommand command = new PlacePieceCommand(this, hitBox);
+        GameManager.Instance.ExecuteCommand(command);
     }
-
 
     public List<int[]> ValidMoves()
     {
@@ -77,7 +63,8 @@ public class ChessPiece : MonoBehaviour
         switch (pieceType)
         {
             case PieceType.PAWN:
-                int[][] directions = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 } };
+                int forwardVector = player == PlayerColor.WHITE ? 1 : -1;
+                int[][] directions = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }, new[] { forwardVector, 0 } };
 
                 foreach (var direction in directions)
                 {
