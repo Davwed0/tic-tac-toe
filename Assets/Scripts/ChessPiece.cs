@@ -64,7 +64,7 @@ public class ChessPiece : MonoBehaviour
         {
             case PieceType.PAWN:
                 int forwardVector = player == PlayerColor.WHITE ? -1 : 1;
-                int[][] directions = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }, new[] { forwardVector, 0 } };
+                int[][] directions = { new[] { forwardVector, 1 }, new[] { forwardVector, -1 } };
 
                 foreach (var direction in directions)
                 {
@@ -73,17 +73,20 @@ public class ChessPiece : MonoBehaviour
 
                     if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
                     {
-                        if (boardState[newRow, newColumn] != player)
+                        if (boardState[newRow, newColumn] != player && boardState[newRow, newColumn] != PlayerColor.EMPTY)
                         {
                             validMoves.Add(new[] { newRow, newColumn });
                         }
                     }
                 }
 
-                int forwardRow = currentPosition[0] + (player == PlayerColor.WHITE ? 1 : -1);
+                int forwardRow = currentPosition[0] + forwardVector;
                 if (forwardRow >= 0 && forwardRow < boardSize)
                 {
-                    validMoves.Add(new[] { forwardRow, currentPosition[1] });
+                    if (boardState[forwardRow, currentPosition[1]] == PlayerColor.EMPTY)
+                    {
+                        validMoves.Add(new[] { forwardRow, currentPosition[1] });
+                    }
                 }
 
                 break;

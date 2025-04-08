@@ -22,7 +22,7 @@ public class Board : MonoBehaviour
     public PieceSlot[] pieceSlots;
     public Score[] scores;
 
-    public Material whiteMaterial, blackMaterial, highlightMaterial;
+    public Material whiteMaterial, blackMaterial;
 
     // Queues for pieces when hands are full
     private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
