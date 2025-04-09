@@ -13,8 +13,6 @@ public class IsometricCameraMovement : MonoBehaviour
     private const float SNAP_ANGLE = 45f;
     private const float TILT_ANGLE = 26.565f;
 
-    [SerializeField] private Camera outlineCamera;
-
     private void Update()
     {
         HandleMouseInput();
@@ -42,7 +40,6 @@ public class IsometricCameraMovement : MonoBehaviour
         float zoom = Camera.main.orthographicSize - scroll;
 
         Camera.main.orthographicSize = Mathf.Clamp(zoom, minZoom, maxZoom);
-        if (outlineCamera != null) outlineCamera.orthographicSize = Mathf.Clamp(zoom, minZoom, maxZoom);
     }
 
     private void NormalizeTargetAngle()

@@ -53,7 +53,7 @@ Material:
     - _Fullscreen_SrcColorBlend: 5
     - _Outline_Thickness: 0.005
     - _Size: 256
-    - _Thickness: 0.002
+    - _Thickness: 0.004
     m_Colors:
     - _Color: {r: 0.8679245, g: 0.8679245, b: 0.8679245, a: 0}
     - _Outline_Color: {r: 1, g: 1, b: 1, a: 0}

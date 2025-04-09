@@ -13,7 +13,6 @@ public class Board : MonoBehaviour
     public GameObject piecePrefab;
     public GameObject pieceSlotPrefab;
     public GameObject scorePrefab;
-    public GameObject boardMesh;
     public GameObject gridBoxPrefab;
 
     public HitBox[,] hitBoxes;
@@ -23,6 +22,8 @@ public class Board : MonoBehaviour
     public Score[] scores;
 
     public Material whiteMaterial, blackMaterial;
+
+    public int winLength = 3; // Default is 3 in a row for traditional tic-tac-toe
 
     // Queues for pieces when hands are full
     private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
@@ -49,8 +50,6 @@ public class Board : MonoBehaviour
 
                 GameObject hitBoxObject = Instantiate(hitBoxPrefab, new Vector3(xPos, 0.54f, yPos), Quaternion.identity);
                 hitBoxObject.transform.SetParent(transform);
-                hitBoxObject.layer = LayerMask.NameToLayer("Outlined");
-                hitBoxObject.transform.GetChild(0).gameObject.layer = LayerMask.NameToLayer("Outlined");
 
                 hitBoxes[row, column] = hitBoxObject.GetComponent<HitBox>();
                 hitBoxes[row, column].name = $"HitBox_{row}_{column}";
@@ -90,7 +89,6 @@ public class Board : MonoBehaviour
         {
             float xPosition = i == 0 ? offsetX : -offsetX;
             GameObject slotObject = Instantiate(pieceSlotPrefab, new Vector3(xPosition, 0, 0), Quaternion.identity);
-            slotObject.transform.localScale = new Vector3(hitBoxSize, 0.25f, ((handSize + 1) * totalGap));
             slotObject.transform.SetParent(transform);
 
             pieceSlots[i] = slotObject.GetComponent<PieceSlot>();
@@ -119,7 +117,6 @@ public class Board : MonoBehaviour
             scoreObject.transform.Rotate(new Vector3(0, yRotation, 0));
             scoreObject.transform.SetParent(transform);
             scoreObject.name = $"Score_{i}";
-            scoreObject.layer = LayerMask.NameToLayer("Outlined");
 
             scores[i] = scoreObject.GetComponent<Score>();
             scores[i].player = i;
@@ -138,7 +135,6 @@ public class Board : MonoBehaviour
             chessPieceObject.transform.Rotate(new Vector3(0, -90, 0));
         }
         chessPieceObject.transform.SetParent(transform);
-        chessPieceObject.layer = LayerMask.NameToLayer("Outlined");
         ChessPiece chessPiece = chessPieceObject.GetComponent<ChessPiece>();
         chessPiece.pieceType = pieceType;
         chessPiece.index = index;
@@ -167,10 +163,7 @@ public class Board : MonoBehaviour
         slotBounds1.Expand(new Vector3(0.5f, 100f, 0.5f));
         slotBounds2.Expand(new Vector3(0.5f, 100f, 0.5f));
 
-        Bounds boardMeshBounds = boardMesh.transform.GetChild(0).gameObject.GetComponent<Collider>().bounds;
-        boardMeshBounds.Expand(new Vector3(0.5f, 100f, 0.5f));
-
-        if (boardMeshBounds.Contains(position) || slotBounds1.Contains(position) || slotBounds2.Contains(position))
+        if (slotBounds1.Contains(position) || slotBounds2.Contains(position))
         {
             return true;
         }
@@ -181,44 +174,109 @@ public class Board : MonoBehaviour
     public (PlayerColor winner, List<Vector2Int> positions) CheckWin()
     {
         PlayerColor[,] boardState = GetBoardState();
-        List<Vector2Int> winningPositions = new List<Vector2Int> { };
 
-        // Check rows for a winner
-        for (int row = 0; row < 3; row++)
+        // Check rows
+        for (int row = 0; row < boardSize; row++)
         {
-            if (boardState[row, 0] != PlayerColor.EMPTY && boardState[row, 0] == boardState[row, 1] && boardState[row, 1] == boardState[row, 2])
+            for (int col = 0; col <= boardSize - winLength; col++)
             {
-                for (int col = 0; col < 3; col++)
-                    winningPositions.Add(new Vector2Int(row, col));
-                return (winner: boardState[row, 0], positions: winningPositions); // Return the winning player (WHITE or BLACK)
+                bool match = true;
+                PlayerColor player = boardState[row, col];
+                if (player == PlayerColor.EMPTY) continue;
+
+                List<Vector2Int> positions = new List<Vector2Int>();
+
+                for (int k = 0; k < winLength; k++)
+                {
+                    if (boardState[row, col + k] != player)
+                    {
+                        match = false;
+                        break;
+                    }
+                    positions.Add(new Vector2Int(row, col + k));
+                }
+
+                if (match)
+                    return (winner: player, positions: positions);
             }
         }
 
-        // Check columns for a winner
-        for (int col = 0; col < 3; col++)
+        // Check columns
+        for (int col = 0; col < boardSize; col++)
         {
-            if (boardState[0, col] != PlayerColor.EMPTY && boardState[0, col] == boardState[1, col] && boardState[1, col] == boardState[2, col])
+            for (int row = 0; row <= boardSize - winLength; row++)
             {
-                for (int row = 0; row < 3; row++)
-                    winningPositions.Add(new Vector2Int(row, col));
-                return (winner: boardState[0, col], positions: winningPositions); // Return the winning player (WHITE or BLACK)
+                bool match = true;
+                PlayerColor player = boardState[row, col];
+                if (player == PlayerColor.EMPTY) continue;
+
+                List<Vector2Int> positions = new List<Vector2Int>();
+
+                for (int k = 0; k < winLength; k++)
+                {
+                    if (boardState[row + k, col] != player)
+                    {
+                        match = false;
+                        break;
+                    }
+                    positions.Add(new Vector2Int(row + k, col));
+                }
+
+                if (match)
+                    return (winner: player, positions: positions);
             }
         }
 
-        // Check first diagonal (top-left to bottom-right)
-        if (boardState[0, 0] != PlayerColor.EMPTY && boardState[0, 0] == boardState[1, 1] && boardState[1, 1] == boardState[2, 2])
+        // Check diagonals (top-left to bottom-right)
+        for (int row = 0; row <= boardSize - winLength; row++)
         {
-            for (int i = 0; i < 3; i++)
-                winningPositions.Add(new Vector2Int(i, i));
-            return (winner: boardState[0, 0], positions: winningPositions); // Return the winning player (WHITE or BLACK)
+            for (int col = 0; col <= boardSize - winLength; col++)
+            {
+                bool match = true;
+                PlayerColor player = boardState[row, col];
+                if (player == PlayerColor.EMPTY) continue;
+
+                List<Vector2Int> positions = new List<Vector2Int>();
+
+                for (int k = 0; k < winLength; k++)
+                {
+                    if (boardState[row + k, col + k] != player)
+                    {
+                        match = false;
+                        break;
+                    }
+                    positions.Add(new Vector2Int(row + k, col + k));
+                }
+
+                if (match)
+                    return (winner: player, positions: positions);
+            }
         }
 
-        // Check second diagonal (top-right to bottom-left)
-        if (boardState[0, 2] != PlayerColor.EMPTY && boardState[0, 2] == boardState[1, 1] && boardState[1, 1] == boardState[2, 0])
+        // Check diagonals (top-right to bottom-left)
+        for (int row = 0; row <= boardSize - winLength; row++)
         {
-            for (int i = 0; i < 3; i++)
-                winningPositions.Add(new Vector2Int(i, 2 - i));
-            return (winner: boardState[0, 2], positions: winningPositions); // Return the winning player (WHITE or BLACK)
+            for (int col = winLength - 1; col < boardSize; col++)
+            {
+                bool match = true;
+                PlayerColor player = boardState[row, col];
+                if (player == PlayerColor.EMPTY) continue;
+
+                List<Vector2Int> positions = new List<Vector2Int>();
+
+                for (int k = 0; k < winLength; k++)
+                {
+                    if (boardState[row + k, col - k] != player)
+                    {
+                        match = false;
+                        break;
+                    }
+                    positions.Add(new Vector2Int(row + k, col - k));
+                }
+
+                if (match)
+                    return (winner: player, positions: positions);
+            }
         }
 
         // If no winner, return EMPTY
