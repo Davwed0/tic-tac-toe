@@ -13,6 +13,15 @@ public class InitState : GameState
         GameManager.Instance.board.InitializeScores();
 
         GameManager.Instance.board.GenerateNewPieces();
+
+        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+        if (audioSource != null)
+        {
+            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-start");
+            if (moveSound != null)
+                audioSource.PlayOneShot(moveSound);
+        }
+
         // Transition to PlayerTurnState after initialization
         stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
     }

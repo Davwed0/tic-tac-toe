@@ -15,6 +15,14 @@ public class GameOverState : GameState
     public override void Enter()
     {
         Debug.Log($"Game Over! Player {winner} has won!");
+        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+        if (audioSource != null)
+        {
+            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-end");
+            if (moveSound != null)
+                audioSource.PlayOneShot(moveSound);
+        }
+
         GameManager.Instance.board.scores[(int)winner].IncrementScore();
         GameManager.Instance.board.HighlightWinningPositions(winningPositions);
 

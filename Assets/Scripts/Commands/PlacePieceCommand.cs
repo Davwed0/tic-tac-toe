@@ -27,27 +27,51 @@ public class PlacePieceCommand : ICommand
         capturedPiece = targetHitBox.GetPiece();
         if (capturedPiece != null)
         {
-            // Play capture sound
-            AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
-            if (audioSource != null)
+            // Only allow captures after round 3 (turn 6)
+            if (GameManager.Instance.currentTurn >= 6)
             {
-                AudioClip captureSound = Resources.Load<AudioClip>("Audio/capture");
-                if (captureSound != null)
-                    audioSource.PlayOneShot(captureSound);
+                // Play capture sound
+                AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+                if (audioSource != null)
+                {
+                    AudioClip captureSound = Resources.Load<AudioClip>("Audio/capture");
+                    if (captureSound != null)
+                        audioSource.PlayOneShot(captureSound);
+                }
+
+                // Store information about captured piece for potential undo
+                capturedPiecePosition = capturedPiece.transform.position;
+                capturedPieceParent = capturedPiece.transform.parent;
+
+                // Get the player of the captured piece before destroying it
+                PlayerColor capturedPlayer = capturedPiece.player;
+                int capturedIndex = capturedPiece.index;
+                Debug.Log($"Captured piece: Player {(int)capturedPlayer}, Index {capturedIndex}");
+                GameManager.Instance.board.chessPieces[capturedIndex, (int)capturedPlayer] = null;
+                Object.Destroy(capturedPiece.gameObject);
+
+                GameManager.Instance.board.CheckPieceQueues();
             }
+            else
+            {
+                // Before round 3, can't capture - revert to just move sound
+                AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+                if (audioSource != null)
+                {
+                    AudioClip moveSound = Resources.Load<AudioClip>("Audio/move-self");
+                    if (moveSound != null)
+                        audioSource.PlayOneShot(moveSound);
+                }
 
-            // Store information about captured piece for potential undo
-            capturedPiecePosition = capturedPiece.transform.position;
-            capturedPieceParent = capturedPiece.transform.parent;
-
-            // Get the player of the captured piece before destroying it
-            PlayerColor capturedPlayer = capturedPiece.player;
-            int capturedIndex = capturedPiece.index;
-            Debug.Log($"Captured piece: Player {(int)capturedPlayer}, Index {capturedIndex}");
-            GameManager.Instance.board.chessPieces[capturedIndex, (int)capturedPlayer] = null;
-            Object.Destroy(capturedPiece.gameObject);
-
-            GameManager.Instance.board.CheckPieceQueues();
+                // Don't allow placement on occupied spots before round 3
+                PlayerTurnState currState = GameManager.Instance.stateMachine.CurrentState as PlayerTurnState;
+                if (currState != null)
+                {
+                    currState.EndTurn();
+                }
+                GameManager.Instance.selectedPiece = null;
+                return;
+            }
         }
         else
         {

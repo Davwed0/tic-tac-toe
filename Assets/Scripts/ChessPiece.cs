@@ -63,6 +63,7 @@ public class ChessPiece : MonoBehaviour
         switch (pieceType)
         {
             case PieceType.PAWN:
+                // Pawn logic remains unchanged as they only move one step
                 int forwardVector = player == PlayerColor.WHITE ? -1 : 1;
                 int[][] directions = { new[] { forwardVector, 1 }, new[] { forwardVector, -1 } };
 
@@ -88,8 +89,8 @@ public class ChessPiece : MonoBehaviour
                         validMoves.Add(new[] { forwardRow, currentPosition[1] });
                     }
                 }
-
                 break;
+
             case PieceType.ROOK:
                 int[][] rookDirections = { new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 } };
 
@@ -101,20 +102,21 @@ public class ChessPiece : MonoBehaviour
                         int newColumn = currentPosition[1] + direction[1] * step;
 
                         if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
-                            break;
-                        else if (boardState[newRow, newColumn] == player)
-                            break;
-                        else if (boardState[newRow, newColumn] != PlayerColor.EMPTY)
-                        {
-                            validMoves.Add(new[] { newRow, newColumn });
-                            break;
-                        }
+                            break; // Out of bounds
+
+                        if (boardState[newRow, newColumn] == player)
+                            break; // Can't move through or onto own pieces
 
                         validMoves.Add(new[] { newRow, newColumn });
+
+                        if (boardState[newRow, newColumn] != PlayerColor.EMPTY)
+                            break; // Hit opponent piece, can't go further
                     }
                 }
                 break;
+
             case PieceType.KNIGHT:
+                // Knights can jump, so their logic remains mostly unchanged
                 int[][] knightMoves = {
                     new[] { 2, 1 }, new[] { 2, -1 }, new[] { -2, 1 }, new[] { -2, -1 },
                     new[] { 1, 2 }, new[] { 1, -2 }, new[] { -1, 2 }, new[] { -1, -2 }
@@ -127,10 +129,15 @@ public class ChessPiece : MonoBehaviour
 
                     if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
                     {
-                        validMoves.Add(new[] { newRow, newColumn });
+                        // Only add if square is empty or has an opponent's piece
+                        if (boardState[newRow, newColumn] != player)
+                        {
+                            validMoves.Add(new[] { newRow, newColumn });
+                        }
                     }
                 }
                 break;
+
             case PieceType.BISHOP:
                 int[][] bishopDirections = { new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 } };
 
@@ -142,12 +149,19 @@ public class ChessPiece : MonoBehaviour
                         int newColumn = currentPosition[1] + direction[1] * step;
 
                         if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
-                            break;
+                            break; // Out of bounds
+
+                        if (boardState[newRow, newColumn] == player)
+                            break; // Can't move through or onto own pieces
 
                         validMoves.Add(new[] { newRow, newColumn });
+
+                        if (boardState[newRow, newColumn] != PlayerColor.EMPTY)
+                            break; // Hit opponent piece, can't go further
                     }
                 }
                 break;
+
             case PieceType.QUEEN:
                 int[][] queenDirections = {
                     new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 },
@@ -162,13 +176,21 @@ public class ChessPiece : MonoBehaviour
                         int newColumn = currentPosition[1] + direction[1] * step;
 
                         if (newRow < 0 || newRow >= boardSize || newColumn < 0 || newColumn >= boardSize)
-                            break;
+                            break; // Out of bounds
+
+                        if (boardState[newRow, newColumn] == player)
+                            break; // Can't move through or onto own pieces
 
                         validMoves.Add(new[] { newRow, newColumn });
+
+                        if (boardState[newRow, newColumn] != PlayerColor.EMPTY)
+                            break; // Hit opponent piece, can't go further
                     }
                 }
                 break;
+
             case PieceType.KING:
+                // King only moves one step so no need to check for jumping
                 int[][] kingMoves = {
                     new[] { 1, 0 }, new[] { -1, 0 }, new[] { 0, 1 }, new[] { 0, -1 },
                     new[] { 1, 1 }, new[] { 1, -1 }, new[] { -1, 1 }, new[] { -1, -1 }
@@ -181,11 +203,12 @@ public class ChessPiece : MonoBehaviour
 
                     if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
                     {
-                        validMoves.Add(new[] { newRow, newColumn });
+                        if (boardState[newRow, newColumn] != player)
+                        {
+                            validMoves.Add(new[] { newRow, newColumn });
+                        }
                     }
                 }
-                break;
-            default:
                 break;
         }
 

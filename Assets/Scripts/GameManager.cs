@@ -100,6 +100,11 @@ public class GameManager : MonoBehaviour
                 {
                     // Check if there's a piece to capture
                     bool isCapture = hitBox.GetPiece() != null && hitBox.GetPlayer() != PlayerColor.EMPTY;
+
+                    // Don't allow capturing before round 3 (turn 6)
+                    if (isCapture && currentTurn < 6)
+                        continue;
+
                     board.hitBoxes[row, column].Render(isCapture);
                 }
             }
@@ -135,6 +140,14 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         board.Reset();
+        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
+        if (audioSource != null)
+        {
+            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-start");
+            if (moveSound != null)
+                audioSource.PlayOneShot(moveSound);
+        }
+
         stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
     }
 }
