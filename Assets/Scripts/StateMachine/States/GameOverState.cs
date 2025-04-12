@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Photon.Pun;
 
 public class GameOverState : GameState
 {
@@ -27,6 +28,10 @@ public class GameOverState : GameState
         GameManager.Instance.board.HighlightWinningPositions(winningPositions);
 
         // Start a new game after short delay
-        GameManager.Instance.StartCoroutine(GameManager.Instance.StartNewGame(2.0f));
+        // In multiplayer, only master client controls game reset
+        if (!PhotonNetwork.IsConnected || PhotonNetwork.IsMasterClient)
+        {
+            GameManager.Instance.StartCoroutine(GameManager.Instance.StartNewGame(2.0f));
+        }
     }
 }

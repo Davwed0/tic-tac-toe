@@ -1,4 +1,5 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class PlacePieceCommand : ICommand
 {
@@ -17,6 +18,20 @@ public class PlacePieceCommand : ICommand
 
     public void Execute()
     {
+        // In multiplayer, verify it's your turn and your piece
+        if (PhotonNetwork.IsConnected)
+        {
+            PlayerColor localPlayerColor = NetworkManager.Instance.GetLocalPlayerColor();
+            if (piece.player != localPlayerColor || GameManager.Instance.currentPlayer != localPlayerColor)
+            {
+                Debug.LogWarning("Cannot place piece - not your turn or not your piece");
+                return;
+            }
+
+            // Send network event for this piece placement
+            NetworkManager.Instance.SendPlacePieceEvent(piece, targetHitBox);
+        }
+
         if (piece.transform.parent != null && piece.transform.parent.GetComponent<HitBox>() != null)
         {
             previousHitBox = piece.transform.parent.GetComponent<HitBox>();
@@ -100,7 +115,6 @@ public class PlacePieceCommand : ICommand
 
         GameManager.Instance.selectedPiece = null;
     }
-
 
     public void Undo()
     {

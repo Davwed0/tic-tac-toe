@@ -1,4 +1,5 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class InitState : GameState
 {
@@ -7,12 +8,22 @@ public class InitState : GameState
     public override void Enter()
     {
         Debug.Log("Entering Init State");
+
+        // In multiplayer, set player color property
+        if (PhotonNetwork.IsConnected && NetworkManager.Instance != null)
+        {
+            NetworkManager.Instance.SetPlayerProperties();
+        }
+
         GameManager.Instance.board.InitializeBoard();
         GameManager.Instance.board.InitializePieces();
         GameManager.Instance.board.InitializeSlots();
         GameManager.Instance.board.InitializeScores();
 
-        GameManager.Instance.board.GenerateNewPieces();
+        if (!PhotonNetwork.IsConnected || PhotonNetwork.IsMasterClient)
+        {
+            GameManager.Instance.board.GenerateNewPieces();
+        }
 
         AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
         if (audioSource != null)

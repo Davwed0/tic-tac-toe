@@ -1,4 +1,5 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class PieceSlot : MonoBehaviour
 {
@@ -19,6 +20,20 @@ public class PieceSlot : MonoBehaviour
             _ => null
         };
 
-        if (GameManager.Instance.currentPlayer == player) GetComponent<Renderer>().material = hoverMaterial;
+        // In multiplayer, highlight only the current player's slot if it's their turn
+        if (PhotonNetwork.IsConnected)
+        {
+            if (GameManager.Instance.currentPlayer == player &&
+                NetworkManager.Instance.GetLocalPlayerColor() == player)
+            {
+                GetComponent<Renderer>().material = hoverMaterial;
+            }
+        }
+        else
+        {
+            // Single player behavior
+            if (GameManager.Instance.currentPlayer == player)
+                GetComponent<Renderer>().material = hoverMaterial;
+        }
     }
 }

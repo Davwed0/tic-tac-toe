@@ -1,4 +1,5 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class HitBox : MonoBehaviour
 {
@@ -25,6 +26,10 @@ public class HitBox : MonoBehaviour
 
     public void OnMouseDown()
     {
+        // In multiplayer, only allow placement during your turn
+        if (PhotonNetwork.IsConnected && !NetworkManager.Instance.IsMyTurn())
+            return;
+
         ChessPiece selectedPiece = GameManager.Instance.selectedPiece;
 
         if (selectedPiece != null)

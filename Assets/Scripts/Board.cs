@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Pun;
 
 public class Board : MonoBehaviour
 {
@@ -312,20 +313,25 @@ public class Board : MonoBehaviour
                 }
                 hitBoxes[row, col].Reset();
                 gridBoxes[row, col].GetComponent<Renderer>().material = ((row + col) % 2 == 0) ? blackMaterial : whiteMaterial;
-
             }
         }
 
         for (int hand = 0; hand < handSize; hand++)
         {
             // Destroy any pieces in the hands
-            Destroy(chessPieces[hand, 0].gameObject);
-            Destroy(chessPieces[hand, 1].gameObject);
+            if (chessPieces[hand, 0] != null && chessPieces[hand, 0].gameObject != null)
+                Destroy(chessPieces[hand, 0].gameObject);
+
+            if (chessPieces[hand, 1] != null && chessPieces[hand, 1].gameObject != null)
+                Destroy(chessPieces[hand, 1].gameObject);
 
             chessPieces[hand, 0] = null;
             chessPieces[hand, 1] = null;
         }
 
+        // Clear queues
+        whitePlayerQueue.Clear();
+        blackPlayerQueue.Clear();
 
         InitializePieces();
 
@@ -407,12 +413,28 @@ public class Board : MonoBehaviour
         CheckPieceQueue(PlayerColor.BLACK);
     }
 
-    // Generate new pieces for both players at end of a full turn
     public void GenerateNewPieces()
     {
-        PieceType randomPieceType = (PieceType)Random.Range(0, 6);
-        AddNewPiece(PlayerColor.WHITE, randomPieceType);
-        AddNewPiece(PlayerColor.BLACK, randomPieceType);
+        if (PhotonNetwork.IsConnected)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // Generate random piece types
+                PieceType whiteRandomPieceType = (PieceType)Random.Range(0, 6);
+                PieceType blackRandomPieceType = (PieceType)Random.Range(0, 6);
+
+                // Send via network event
+                NetworkManager.Instance.SendGeneratePiecesEvent(whiteRandomPieceType, blackRandomPieceType);
+            }
+            // Non-master clients will receive piece generation via network event
+        }
+        else
+        {
+            // Single player mode - generate pieces directly
+            PieceType randomPieceType = (PieceType)Random.Range(0, 6);
+            AddNewPiece(PlayerColor.WHITE, randomPieceType);
+            AddNewPiece(PlayerColor.BLACK, randomPieceType);
+        }
     }
 
     public void HighlightWinningPositions(List<Vector2Int> positions)

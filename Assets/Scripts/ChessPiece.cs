@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Photon.Pun;
 
 public enum PieceType
 {
@@ -36,10 +37,24 @@ public class ChessPiece : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (GameManager.Instance.currentPlayer == player)
+        // In multiplayer, only allow selection of your own pieces on your turn
+        if (PhotonNetwork.IsConnected)
         {
-            ICommand command = new SelectPieceCommand(this);
-            GameManager.Instance.ExecuteCommand(command);
+            if (GameManager.Instance.currentPlayer == player &&
+                player == NetworkManager.Instance.GetLocalPlayerColor())
+            {
+                ICommand command = new SelectPieceCommand(this);
+                GameManager.Instance.ExecuteCommand(command);
+            }
+        }
+        else
+        {
+            // Single player logic
+            if (GameManager.Instance.currentPlayer == player)
+            {
+                ICommand command = new SelectPieceCommand(this);
+                GameManager.Instance.ExecuteCommand(command);
+            }
         }
     }
 

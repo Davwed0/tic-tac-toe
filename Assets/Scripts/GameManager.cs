@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
+using Photon.Pun;
 
 public class GameManager : MonoBehaviour
 {
@@ -46,6 +47,13 @@ public class GameManager : MonoBehaviour
 
     public void ExecuteCommand(ICommand command)
     {
+        // Only execute commands during your turn in networked mode
+        if (PhotonNetwork.IsConnected && !NetworkManager.Instance.IsMyTurn())
+        {
+            Debug.Log("Not your turn!");
+            return;
+        }
+
         command.Execute();
         commandHistory.Push(command);
         redoHistory.Clear();
@@ -53,6 +61,10 @@ public class GameManager : MonoBehaviour
 
     public void Undo()
     {
+        // Only allow undo during your turn in networked mode
+        if (PhotonNetwork.IsConnected && !NetworkManager.Instance.IsMyTurn())
+            return;
+
         if (commandHistory.Count > 0)
         {
             ICommand command = commandHistory.Pop();
@@ -63,6 +75,10 @@ public class GameManager : MonoBehaviour
 
     public void Redo()
     {
+        // Only allow redo during your turn in networked mode
+        if (PhotonNetwork.IsConnected && !NetworkManager.Instance.IsMyTurn())
+            return;
+
         if (redoHistory.Count > 0)
         {
             ICommand command = redoHistory.Pop();
@@ -79,9 +95,18 @@ public class GameManager : MonoBehaviour
 
     public void RenderValidMoves()
     {
+        // Only show valid moves during your turn in networked mode
+        if (PhotonNetwork.IsConnected && !NetworkManager.Instance.IsMyTurn())
+            return;
+
         DestroyHitBoxes();
 
         if (selectedPiece == null) return;
+
+        // Only show valid moves for your own pieces in networked mode
+        if (PhotonNetwork.IsConnected && selectedPiece.player != NetworkManager.Instance.GetLocalPlayerColor())
+            return;
+
         List<int[]> pieceValidMoves = selectedPiece.ValidMoves();
 
         if (pieceValidMoves == null) return;
@@ -139,7 +164,20 @@ public class GameManager : MonoBehaviour
     public IEnumerator StartNewGame(float delay)
     {
         yield return new WaitForSeconds(delay);
-        board.Reset();
+
+        // In multiplayer, only master client should reset the board and trigger the event
+        if (!PhotonNetwork.IsConnected || PhotonNetwork.IsMasterClient)
+        {
+            if (PhotonNetwork.IsConnected)
+            {
+                NetworkManager.Instance.SendResetBoardEvent();
+            }
+            else
+            {
+                board.Reset();
+            }
+        }
+
         AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
         if (audioSource != null)
         {
