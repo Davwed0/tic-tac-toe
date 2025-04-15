@@ -4,16 +4,16 @@ using Photon.Realtime;
 using ExitGames.Client.Photon;
 using System.Collections.Generic;
 
-public class InitState : GameState, IOnEventCallback
+public class NewGame : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
     private bool receivedPieces = false;
 
-    public InitState(GameStateMachine stateMachine) : base(stateMachine) { }
+    public NewGame(GameStateMachine stateMachine) : base(stateMachine) { }
 
     public override void Enter()
     {
-        Debug.Log("Entering Init State");
+        Debug.Log("Entering New State");
 
         // Register for Photon events
         PhotonNetwork.AddCallbackTarget(this);
@@ -22,13 +22,7 @@ public class InitState : GameState, IOnEventCallback
         {
             Debug.Log("Master client detected. Loading game scene.");
 
-            GameManager.Instance.board.InitializeBoard();
-            GameManager.Instance.board.InitializePieces();
-            GameManager.Instance.board.InitializeSlots();
-            GameManager.Instance.board.InitializeScores();
-
             GameManager.Instance.board.GenerateNewPieces();
-
             // Serialize and send piece data to other clients
             SendBoardData();
 
@@ -40,10 +34,6 @@ public class InitState : GameState, IOnEventCallback
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
-
-            GameManager.Instance.board.InitializeBoard();
-            GameManager.Instance.board.InitializeSlots();
-            GameManager.Instance.board.InitializeScores();
 
             // Non-master clients wait for piece data
             // The transition will happen after receiving the piece data

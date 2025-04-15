@@ -29,10 +29,17 @@ public class Board : MonoBehaviour
     private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
     private Queue<PieceType> blackPlayerQueue = new Queue<PieceType>();
 
-    public void InitializeBoard()
+    private void Awake()
     {
         hitBoxes = new HitBox[boardSize, boardSize];
         gridBoxes = new GameObject[boardSize, boardSize];
+        chessPieces = new ChessPiece[handSize, 2];
+        pieceSlots = new PieceSlot[2];
+        scores = new Score[2];
+    }
+
+    public void InitializeBoard()
+    {
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
         float totalGap = hitBoxSize + hitBoxGap;
         float offset = (boardSize - 1) * totalGap / 2.0f;
@@ -61,7 +68,6 @@ public class Board : MonoBehaviour
 
     public void InitializePieces()
     {
-        chessPieces = new ChessPiece[handSize, 2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
         float totalGap = hitBoxSize + hitBoxGap;
         float offsetX = (boardSize * totalGap) / 2 + pad;
@@ -80,7 +86,6 @@ public class Board : MonoBehaviour
 
     public void InitializeSlots()
     {
-        pieceSlots = new PieceSlot[2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
         float totalGap = hitBoxSize + hitBoxGap;
         float offsetX = (boardSize * totalGap) / 2 + pad;
@@ -100,7 +105,6 @@ public class Board : MonoBehaviour
 
     public void InitializeScores()
     {
-        scores = new Score[2];
         float hitBoxSize = hitBoxPrefab.transform.localScale.x;
         float totalGap = hitBoxSize + hitBoxGap;
         float offsetX = (boardSize * totalGap) / 2 + pad;
@@ -123,7 +127,7 @@ public class Board : MonoBehaviour
         }
     }
 
-    private ChessPiece CreatePiece(float xPos, float yPos, PieceType pieceType, int index, PlayerColor player = PlayerColor.WHITE)
+    public ChessPiece CreatePiece(float xPos, float yPos, PieceType pieceType, int index, PlayerColor player = PlayerColor.WHITE)
     {
         GameObject chessPieceObject = Instantiate(piecePrefab, new Vector3(xPos, 0, yPos), Quaternion.identity);
         if (player == PlayerColor.BLACK)
@@ -337,18 +341,10 @@ public class Board : MonoBehaviour
     // Add a new piece to the player's hand or queue if hand is full
     public void AddNewPiece(PlayerColor player, PieceType piece)
     {
-        // Try to add directly to hand, or queue if hand is full
-        bool added = AddPieceToHand(player, piece);
-        if (!added)
-        {
-            // Queue the piece if hand is full
-            if (player == PlayerColor.WHITE)
-                whitePlayerQueue.Enqueue(piece);
-            else
-                blackPlayerQueue.Enqueue(piece);
-
-            Debug.Log($"Queued a {piece} for player {player}");
-        }
+        if (player == PlayerColor.WHITE)
+            whitePlayerQueue.Enqueue(piece);
+        else
+            blackPlayerQueue.Enqueue(piece);
     }
 
     // Try to add a piece to the player's hand, return true if successful
@@ -359,7 +355,7 @@ public class Board : MonoBehaviour
         // Check if there's an empty slot in the hand
         for (int i = 0; i < handSize; i++)
         {
-            if (chessPieces[i, playerIndex] == null || !chessPieces[i, playerIndex].gameObject)
+            if (chessPieces[i, playerIndex] == null)
             {
                 // Create the piece in the empty slot
                 float hitBoxSize = hitBoxPrefab.transform.localScale.x;
@@ -378,41 +374,56 @@ public class Board : MonoBehaviour
                 Debug.Log($"Added a {pieceType} to player {player}'s hand at position {i}");
                 return true;
             }
+            else
+            {
+                Debug.Log($"Slot {i} is already occupied for player {player}");
+            }
         }
 
         return false; // Hand is full
     }
 
-    // Check queues when a piece is removed from hand (after placement or destruction)
-    public void CheckPieceQueue(PlayerColor player)
+    public void CheckPieceQueues()
     {
-        Queue<PieceType> queue = player == PlayerColor.WHITE ? whitePlayerQueue : blackPlayerQueue;
-
-        if (queue.Count > 0)
+        if (whitePlayerQueue.Count > 0)
         {
-            PieceType nextPiece = queue.Dequeue();
-            bool added = AddPieceToHand(player, nextPiece);
+            PieceType nextPiece = whitePlayerQueue.Peek();
+            bool added = AddPieceToHand(PlayerColor.WHITE, nextPiece);
 
             if (added)
-                Debug.Log($"Added queued {nextPiece} to player {player}'s hand");
+            {
+                whitePlayerQueue.Dequeue();
+                Debug.Log($"Added queued {nextPiece} to White player's hand");
+            }
             else
-                Debug.Log($"Failed to add queued {nextPiece} to player {player}'s hand, putting it back in queue");
-            queue.Enqueue(nextPiece);
+            {
+                Debug.Log($"Failed to add queued {nextPiece} to White player's hand, putting it back in queue");
+            }
+        }
+        if (blackPlayerQueue.Count > 0)
+        {
+            PieceType nextPiece = blackPlayerQueue.Peek();
+            bool added = AddPieceToHand(PlayerColor.BLACK, nextPiece);
+
+            if (added)
+            {
+                blackPlayerQueue.Dequeue();
+                Debug.Log($"Added queued {nextPiece} to Black player's hand");
+            }
+            else
+            {
+                Debug.Log($"Failed to add queued {nextPiece} to Black player's hand, putting it back in queue");
+            }
         }
     }
 
-    public void CheckPieceQueues()
-    {
-        CheckPieceQueue(PlayerColor.WHITE);
-        CheckPieceQueue(PlayerColor.BLACK);
-    }
-
     // Generate new pieces for both players at end of a full turn
-    public void GenerateNewPieces()
+    public PieceType GenerateNewPieces()
     {
         PieceType randomPieceType = (PieceType)Random.Range(0, 6);
         AddNewPiece(PlayerColor.WHITE, randomPieceType);
         AddNewPiece(PlayerColor.BLACK, randomPieceType);
+        return randomPieceType;
     }
 
     public void HighlightWinningPositions(List<Vector2Int> positions)

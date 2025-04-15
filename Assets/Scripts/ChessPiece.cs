@@ -36,7 +36,7 @@ public class ChessPiece : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (GameManager.Instance.currentPlayer == player)
+        if (GameManager.Instance.currentPlayer == player && GameManager.Instance.playerColor == GameManager.Instance.currentPlayer)
         {
             ICommand command = new SelectPieceCommand(this);
             GameManager.Instance.ExecuteCommand(command);

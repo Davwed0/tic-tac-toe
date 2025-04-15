@@ -8,6 +8,8 @@ public class GameManager : MonoBehaviour
 
     public Board board;
     public GameStateMachine stateMachine;
+    public PlayerColor playerColor = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
+
     public PlayerColor currentPlayer = PlayerColor.WHITE;
     public int currentTurn = 0;
     public ChessPiece selectedPiece;

@@ -27,6 +27,6 @@ public class GameOverState : GameState
         GameManager.Instance.board.HighlightWinningPositions(winningPositions);
 
         // Start a new game after short delay
-        GameManager.Instance.StartCoroutine(GameManager.Instance.StartNewGame(2.0f));
+        stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
     }
 }
