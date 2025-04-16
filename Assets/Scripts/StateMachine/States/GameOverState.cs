@@ -16,16 +16,11 @@ public class GameOverState : GameState
     {
         Debug.Log($"Game Over! Player {winner} has won!");
 
-        // Play victory sound
         GameManager.Instance.PlayAudio("game-end");
 
-        // Update score for the winner
         GameManager.Instance.board.scores[(int)winner].IncrementScore();
-
-        // Highlight the winning positions on the board
         GameManager.Instance.board.HighlightWinningPositions(winningPositions);
 
-        // Start a new game after a delay
         stateMachine.ChangeState(new NewGameState(stateMachine));
     }
 

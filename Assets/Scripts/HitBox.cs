@@ -7,7 +7,6 @@ public class HitBox : MonoBehaviour
     private GameObject tile;
     public bool isValid { get; set; } = false;
 
-    // Add public properties to access row and column
     public int Row { get { return this.row; } }
     public int Col { get { return this.column; } }
 

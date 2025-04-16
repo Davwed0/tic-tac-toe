@@ -63,16 +63,13 @@ public class GameManager : MonoBehaviour
             int row = move[0];
             int column = move[1];
 
-            // Make sure indices are valid for the board
             if (row >= 0 && row < board.boardSize && column >= 0 && column < board.boardSize)
             {
                 HitBox hitBox = board.hitBoxes[row, column];
                 if (hitBox.GetPlayer() != selectedPiece.player)
                 {
-                    // Check if there's a piece to capture
                     bool isCapture = hitBox.GetPiece() != null && hitBox.GetPlayer() != PlayerColor.EMPTY;
 
-                    // Don't allow capturing before round 3 (turn 6)
                     if (isCapture && currentTurn < 6)
                         continue;
 

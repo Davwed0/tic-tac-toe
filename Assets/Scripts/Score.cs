@@ -58,14 +58,4 @@ public class Score : MonoBehaviour
             _ => null
         };
     }
-
-    public int GetScore()
-    {
-        return score;
-    }
-
-    public void ResetScore()
-    {
-        score = 0;
-    }
 }

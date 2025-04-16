@@ -14,10 +14,8 @@ public class InitState : GameState, IOnEventCallback
     {
         Debug.Log("Entering Init State");
 
-        // Register for Photon events
         PhotonNetwork.AddCallbackTarget(this);
 
-        // Both clients initialize the board
         GameManager.Instance.board.InitializeBoard();
         GameManager.Instance.board.InitializeSlots();
         GameManager.Instance.board.InitializeScores();
@@ -26,14 +24,11 @@ public class InitState : GameState, IOnEventCallback
         {
             Debug.Log("Master client detected. Loading game pieces.");
 
-            // Only master initializes pieces
             GameManager.Instance.board.InitializePieces();
-            GameManager.Instance.board.GenerateNewPieces();
 
             SendBoardData();
             GameManager.Instance.PlayAudio("game-start");
 
-            // Master client can proceed immediately, but with a small delay for UI consistency
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
         else
@@ -65,7 +60,6 @@ public class InitState : GameState, IOnEventCallback
             }
         }
 
-        // Send the data through Photon
         object[] data = allBoardData.ToArray();
         RaiseEventOptions raiseEventOptions = new RaiseEventOptions { Receivers = ReceiverGroup.Others };
         PhotonNetwork.RaiseEvent(SEND_BOARD_EVENT, data, raiseEventOptions, SendOptions.SendReliable);

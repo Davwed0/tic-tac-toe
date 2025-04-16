@@ -23,7 +23,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
         PhotonNetwork.AddCallbackTarget(this);
 
-        // Determine if the local player is the active player
         PlayerColor localPlayerColor = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
         canMakeMove = (localPlayerColor == currentPlayer);
 
@@ -50,18 +49,12 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
     public override void Update()
     {
-        // Only allow the current player to interact with the board
-        if (!canMakeMove)
-        {
-            return;
-        }
+        if (!canMakeMove) return;
 
-        // Update hitbox rendering based on selected piece
         if (GameManager.Instance.selectedPiece != null)
         {
             GameManager.Instance.RenderValidMoves();
 
-            // Check for player placing a piece
             if (Input.GetMouseButtonDown(0))
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -77,13 +70,9 @@ public class PlayerTurnState : GameState, IOnEventCallback
                         int row = position[0];
                         int col = position[1];
 
-                        // Place the piece locally
                         PlacePiece(selectedPiece, hitBox);
-
-                        // Send the move to the other client
                         SendMovePlacement(selectedPiece.index, (int)currentPlayer, row, col);
 
-                        // End the player's turn
                         EndTurn();
                     }
                 }
@@ -113,7 +102,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
         int col = position[1];
         SendMovePlacement(piece.index, (int)currentPlayer, row, col);
 
-        // Check if there's a different piece to capture
         ChessPiece existingPiece = hitBox.GetPiece();
         if (existingPiece != null && existingPiece != piece)
         {
@@ -130,7 +118,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
             GameManager.Instance.PlayAudio("move-self");
         }
 
-        // If the piece is already on another hitbox, clear that reference
         if (piece.transform.parent != null &&
             piece.transform.parent.GetComponent<HitBox>() != null)
         {
@@ -138,7 +125,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
             previousHitBox.player = PlayerColor.EMPTY;
         }
 
-        // Update piece position
         piece.isOnBoard = true;
         piece.transform.position = hitBox.transform.position;
         piece.transform.SetParent(hitBox.transform);
@@ -199,12 +185,10 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
             if (placedPiece != null)
             {
-                // Find the hitbox at the target position
                 HitBox targetBox = GameManager.Instance.board.hitBoxes[row, col];
 
                 if (targetBox != null)
                 {
-                    // Check if there's a different piece to capture (not the one we're moving)
                     ChessPiece existingPiece = targetBox.GetPiece();
                     if (existingPiece != null && existingPiece != placedPiece)
                     {
@@ -215,7 +199,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
                         GameManager.Instance.board.chessPieces[capturedIndex, capturedPlayer] = null;
                     }
 
-                    // If the piece is already on another hitbox, clear that reference
                     if (placedPiece.transform.parent != null &&
                         placedPiece.transform.parent.GetComponent<HitBox>() != null)
                     {
@@ -223,7 +206,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
                         previousHitBox.player = PlayerColor.EMPTY;
                     }
 
-                    // Update piece position
                     placedPiece.isOnBoard = true;
                     placedPiece.transform.position = targetBox.transform.position;
                     placedPiece.transform.SetParent(targetBox.transform);
@@ -246,7 +228,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
     {
         PlayerColor nextPlayer = (currentPlayer == PlayerColor.WHITE) ? PlayerColor.BLACK : PlayerColor.WHITE;
 
-        // Check if there's a winner before changing player
         var result = GameManager.Instance.board.CheckWin();
         PlayerColor winner = result.winner;
         List<Vector2Int> positions = result.positions;

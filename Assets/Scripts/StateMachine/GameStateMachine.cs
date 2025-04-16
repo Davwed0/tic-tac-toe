@@ -25,11 +25,4 @@ public class GameStateMachine
         }
     }
 
-    public void HandleInput()
-    {
-        if (CurrentState != null)
-        {
-            CurrentState.HandleInput();
-        }
-    }
 }

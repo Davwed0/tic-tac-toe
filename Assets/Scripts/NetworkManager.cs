@@ -8,7 +8,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private void Awake()
     {
-        // Singleton pattern
         if (Instance == null)
         {
             Instance = this;
@@ -20,13 +19,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             return;
         }
 
-        // Configure Photon settings
         PhotonNetwork.AutomaticallySyncScene = true;
     }
 
     private void Start()
     {
-        // set player color
         if (PhotonNetwork.IsMasterClient)
         {
             GameManager.Instance.playerColor = PlayerColor.WHITE;

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Board : MonoBehaviour
 {
@@ -23,9 +22,8 @@ public class Board : MonoBehaviour
 
     public Material whiteMaterial, blackMaterial;
 
-    public int winLength = 3; // Default is 3 in a row for traditional tic-tac-toe
+    public int winLength = 3;
 
-    // Queues for pieces when hands are full
     private Queue<PieceType> whitePlayerQueue = new Queue<PieceType>();
     private Queue<PieceType> blackPlayerQueue = new Queue<PieceType>();
 
@@ -148,38 +146,11 @@ public class Board : MonoBehaviour
         return chessPiece;
     }
 
-    public void MovePieceToHand(ChessPiece chessPiece, PlayerColor player)
-    {
-        float hitBoxSize = hitBoxPrefab.transform.localScale.x;
-        float xPos = ((boardSize * (hitBoxSize + hitBoxGap)) / 2 + pad) * (player == PlayerColor.WHITE ? 1 : -1);
-        float index = (player == PlayerColor.WHITE ? chessPiece.index : (handSize - chessPiece.index - 1));
-        float yPos = index * hitBoxSize - (handSize * hitBoxSize) / 2 + (player == PlayerColor.WHITE ? 2 : 0);
-
-        chessPiece.transform.position = new Vector3(xPos, 0, yPos);
-        chessPiece.transform.SetParent(transform);
-        chessPiece.isOnBoard = false;
-    }
-
-    public bool CheckCollisions(Vector3 position)
-    {
-        Bounds slotBounds1 = pieceSlots[0].GetComponent<Collider>().bounds;
-        Bounds slotBounds2 = pieceSlots[1].GetComponent<Collider>().bounds;
-        slotBounds1.Expand(new Vector3(0.5f, 100f, 0.5f));
-        slotBounds2.Expand(new Vector3(0.5f, 100f, 0.5f));
-
-        if (slotBounds1.Contains(position) || slotBounds2.Contains(position))
-        {
-            return true;
-        }
-
-        return false;
-    }
 
     public (PlayerColor winner, List<Vector2Int> positions) CheckWin()
     {
         PlayerColor[,] boardState = GetBoardState();
 
-        // Check rows
         for (int row = 0; row < boardSize; row++)
         {
             for (int col = 0; col <= boardSize - winLength; col++)
@@ -205,7 +176,6 @@ public class Board : MonoBehaviour
             }
         }
 
-        // Check columns
         for (int col = 0; col < boardSize; col++)
         {
             for (int row = 0; row <= boardSize - winLength; row++)
@@ -231,7 +201,6 @@ public class Board : MonoBehaviour
             }
         }
 
-        // Check diagonals (top-left to bottom-right)
         for (int row = 0; row <= boardSize - winLength; row++)
         {
             for (int col = 0; col <= boardSize - winLength; col++)
@@ -257,7 +226,6 @@ public class Board : MonoBehaviour
             }
         }
 
-        // Check diagonals (top-right to bottom-left)
         for (int row = 0; row <= boardSize - winLength; row++)
         {
             for (int col = winLength - 1; col < boardSize; col++)
@@ -283,7 +251,6 @@ public class Board : MonoBehaviour
             }
         }
 
-        // If no winner, return EMPTY
         return (winner: PlayerColor.EMPTY, positions: null);
     }
 
@@ -304,7 +271,6 @@ public class Board : MonoBehaviour
 
     public void Reset()
     {
-        // First destroy any pieces on the board
         for (int row = 0; row < boardSize; row++)
         {
             for (int col = 0; col < boardSize; col++)
@@ -322,7 +288,6 @@ public class Board : MonoBehaviour
 
         for (int hand = 0; hand < handSize; hand++)
         {
-            // Destroy any pieces in the hands
             Destroy(chessPieces[hand, 0].gameObject);
             Destroy(chessPieces[hand, 1].gameObject);
 
@@ -335,7 +300,6 @@ public class Board : MonoBehaviour
         GameManager.Instance.selectedPiece = null;
     }
 
-    // Add a new piece to the player's hand or queue if hand is full
     public void AddNewPiece(PlayerColor player, PieceType piece)
     {
         if (player == PlayerColor.WHITE)
@@ -344,17 +308,14 @@ public class Board : MonoBehaviour
             blackPlayerQueue.Enqueue(piece);
     }
 
-    // Try to add a piece to the player's hand, return true if successful
     public bool AddPieceToHand(PlayerColor player, PieceType pieceType)
     {
         int playerIndex = (int)player;
 
-        // Check if there's an empty slot in the hand
         for (int i = 0; i < handSize; i++)
         {
             if (chessPieces[i, playerIndex] == null)
             {
-                // Create the piece in the empty slot
                 float hitBoxSize = hitBoxPrefab.transform.localScale.x;
                 float totalGap = hitBoxSize + hitBoxGap;
                 float offsetX = (boardSize * totalGap) / 2 + pad;
@@ -377,7 +338,7 @@ public class Board : MonoBehaviour
             }
         }
 
-        return false; // Hand is full
+        return false;
     }
 
     public void CheckPieceQueues()
@@ -414,7 +375,6 @@ public class Board : MonoBehaviour
         }
     }
 
-    // Generate new pieces for both players at end of a full turn
     public PieceType GenerateNewPieces()
     {
         PieceType randomPieceType = (PieceType)Random.Range(0, 6);
@@ -431,7 +391,6 @@ public class Board : MonoBehaviour
             Material originalMaterial = renderer.material;
             Color targetColor = Color.red;
 
-            // Start a coroutine to slowly change the color
             StartCoroutine(ColorChangeAnimation(renderer, originalMaterial.color, targetColor, 0.3f));
         }
     }
