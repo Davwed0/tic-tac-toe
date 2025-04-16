@@ -122,6 +122,12 @@ public class PlayerTurnState : GameState, IOnEventCallback
             Debug.Log($"Capturing piece: Player {capturedPlayer}, Index {capturedIndex}");
             Object.Destroy(existingPiece.gameObject);
             GameManager.Instance.board.chessPieces[capturedIndex, capturedPlayer] = null;
+
+            GameManager.Instance.PlayAudio("capture");
+        }
+        else
+        {
+            GameManager.Instance.PlayAudio("move-self");
         }
 
         // If the piece is already on another hitbox, clear that reference

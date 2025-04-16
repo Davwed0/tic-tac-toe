@@ -111,14 +111,19 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         board.Reset();
+        this.PlayAudio("game-start");
+
+        stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
+    }
+
+    public void PlayAudio(string audioName)
+    {
         AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
         if (audioSource != null)
         {
-            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-start");
+            AudioClip moveSound = Resources.Load<AudioClip>($"Audio/{audioName}");
             if (moveSound != null)
                 audioSource.PlayOneShot(moveSound);
         }
-
-        stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
     }
 }

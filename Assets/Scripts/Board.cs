@@ -330,9 +330,6 @@ public class Board : MonoBehaviour
             chessPieces[hand, 1] = null;
         }
 
-
-        InitializePieces();
-
         GameManager.Instance.currentTurn = 0;
         GameManager.Instance.currentPlayer = PlayerColor.WHITE;
         GameManager.Instance.selectedPiece = null;

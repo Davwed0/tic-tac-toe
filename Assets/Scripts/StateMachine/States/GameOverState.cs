@@ -5,7 +5,6 @@ public class GameOverState : GameState
 {
     private PlayerColor winner;
     private List<Vector2Int> winningPositions;
-    private bool stateTransitionPending = false;
 
     public GameOverState(GameStateMachine stateMachine, PlayerColor winner, List<Vector2Int> winningPositions) : base(stateMachine)
     {
@@ -18,7 +17,7 @@ public class GameOverState : GameState
         Debug.Log($"Game Over! Player {winner} has won!");
 
         // Play victory sound
-        PlayEndGameSound();
+        GameManager.Instance.PlayAudio("game-end");
 
         // Update score for the winner
         GameManager.Instance.board.scores[(int)winner].IncrementScore();
@@ -27,34 +26,11 @@ public class GameOverState : GameState
         GameManager.Instance.board.HighlightWinningPositions(winningPositions);
 
         // Start a new game after a delay
-        stateTransitionPending = true;
-        GameManager.Instance.StartCoroutine(DelayedStateTransition());
-    }
-
-    private System.Collections.IEnumerator DelayedStateTransition()
-    {
-        // Allow enough time for players to see the win
-        yield return new WaitForSeconds(0.2f);
-        if (stateTransitionPending)
-        {
-            stateTransitionPending = false;
-            stateMachine.ChangeState(new NewGameState(stateMachine));
-        }
-    }
-
-    private void PlayEndGameSound()
-    {
-        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
-        if (audioSource != null)
-        {
-            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-end");
-            if (moveSound != null)
-                audioSource.PlayOneShot(moveSound);
-        }
+        stateMachine.ChangeState(new NewGameState(stateMachine));
     }
 
     public override void Exit()
     {
-        stateTransitionPending = false;
+        Debug.Log("Exiting Game Over State");
     }
 }

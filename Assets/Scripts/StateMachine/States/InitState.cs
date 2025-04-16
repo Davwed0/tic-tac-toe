@@ -7,7 +7,6 @@ using System.Collections.Generic;
 public class InitState : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
-    private bool stateTransitionPending = false;
 
     public InitState(GameStateMachine stateMachine) : base(stateMachine) { }
 
@@ -32,28 +31,18 @@ public class InitState : GameState, IOnEventCallback
             GameManager.Instance.board.GenerateNewPieces();
 
             SendBoardData();
-            PlayStartSound();
+            GameManager.Instance.PlayAudio("game-start");
 
             // Master client can proceed immediately, but with a small delay for UI consistency
-            stateTransitionPending = true;
-            GameManager.Instance.StartCoroutine(DelayedStateTransition());
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
-            PlayStartSound();
+            GameManager.Instance.PlayAudio("game-start");
         }
     }
 
-    private System.Collections.IEnumerator DelayedStateTransition()
-    {
-        yield return new WaitForSeconds(0.01f);
-        if (stateTransitionPending)
-        {
-            stateTransitionPending = false;
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
-        }
-    }
 
     private void SendBoardData()
     {
@@ -98,19 +87,6 @@ public class InitState : GameState, IOnEventCallback
 
             Debug.Log("Received board data: " + allBoardData.Length + " pieces");
 
-            // Manually clear existing pieces
-            for (int playerIdx = 0; playerIdx < 2; playerIdx++)
-            {
-                for (int handIdx = 0; handIdx < GameManager.Instance.board.handSize; handIdx++)
-                {
-                    if (GameManager.Instance.board.chessPieces[handIdx, playerIdx] != null)
-                    {
-                        Object.Destroy(GameManager.Instance.board.chessPieces[handIdx, playerIdx].gameObject);
-                        GameManager.Instance.board.chessPieces[handIdx, playerIdx] = null;
-                    }
-                }
-            }
-
             foreach (object pieceDataObj in allBoardData)
             {
                 object[] pieceData = (object[])pieceDataObj;
@@ -135,26 +111,12 @@ public class InitState : GameState, IOnEventCallback
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
 
-            // Use a slight delay before transition to ensure rendering is complete
-            stateTransitionPending = true;
-            GameManager.Instance.StartCoroutine(DelayedStateTransition());
-        }
-    }
-
-    private void PlayStartSound()
-    {
-        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
-        if (audioSource != null)
-        {
-            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-start");
-            if (moveSound != null)
-                audioSource.PlayOneShot(moveSound);
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
     }
 
     public override void Exit()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
-        stateTransitionPending = false;
     }
 }

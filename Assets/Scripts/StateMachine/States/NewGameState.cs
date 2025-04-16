@@ -6,8 +6,7 @@ using System.Collections.Generic;
 
 public class NewGameState : GameState, IOnEventCallback
 {
-    private const byte SEND_BOARD_EVENT = 1;
-    private bool stateTransitionPending = false;
+    private const byte SEND_NEW_BOARD_EVENT = 1;
 
     public NewGameState(GameStateMachine stateMachine) : base(stateMachine) { }
 
@@ -17,38 +16,24 @@ public class NewGameState : GameState, IOnEventCallback
 
         // Register for Photon events
         PhotonNetwork.AddCallbackTarget(this);
+        GameManager.Instance.board.Reset();
+        GameManager.Instance.PlayAudio("game-start");
 
         if (NetworkManager.Instance.IsMasterClient())
         {
             Debug.Log("Master client detected. Loading game scene.");
-            GameManager.Instance.board.Reset();
 
+            GameManager.Instance.board.InitializePieces();
             GameManager.Instance.board.GenerateNewPieces();
             // Serialize and send piece data to other clients
             SendBoardData();
 
-            PlayStartSound();
-
             // Master client can proceed immediately, but with a small delay for UI consistency
-            stateTransitionPending = true;
-            GameManager.Instance.StartCoroutine(DelayedStateTransition());
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
-            GameManager.Instance.board.Reset();
-
-            PlayStartSound();
-        }
-    }
-
-    private System.Collections.IEnumerator DelayedStateTransition()
-    {
-        yield return new WaitForSeconds(0.01f);
-        if (stateTransitionPending)
-        {
-            stateTransitionPending = false;
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
     }
 
@@ -76,7 +61,7 @@ public class NewGameState : GameState, IOnEventCallback
         // Send the data through Photon
         object[] data = allBoardData.ToArray();
         RaiseEventOptions raiseEventOptions = new RaiseEventOptions { Receivers = ReceiverGroup.Others };
-        PhotonNetwork.RaiseEvent(SEND_BOARD_EVENT, data, raiseEventOptions, SendOptions.SendReliable);
+        PhotonNetwork.RaiseEvent(SEND_NEW_BOARD_EVENT, data, raiseEventOptions, SendOptions.SendReliable);
 
         Debug.Log("Sent board data to other clients: " + data.Length + " pieces");
         foreach (object boardDataObj in data)
@@ -88,25 +73,12 @@ public class NewGameState : GameState, IOnEventCallback
 
     public void OnEvent(EventData photonEvent)
     {
-        if (photonEvent.Code == SEND_BOARD_EVENT && !NetworkManager.Instance.IsMasterClient())
+        if (photonEvent.Code == SEND_NEW_BOARD_EVENT && !NetworkManager.Instance.IsMasterClient())
         {
             Debug.Log("Received board data from master client");
             object[] allBoardData = (object[])photonEvent.CustomData;
 
             Debug.Log("Received board data: " + allBoardData.Length + " pieces");
-
-            // Manually clear existing pieces
-            for (int playerIdx = 0; playerIdx < 2; playerIdx++)
-            {
-                for (int handIdx = 0; handIdx < GameManager.Instance.board.handSize; handIdx++)
-                {
-                    if (GameManager.Instance.board.chessPieces[handIdx, playerIdx] != null)
-                    {
-                        Object.Destroy(GameManager.Instance.board.chessPieces[handIdx, playerIdx].gameObject);
-                        GameManager.Instance.board.chessPieces[handIdx, playerIdx] = null;
-                    }
-                }
-            }
 
             foreach (object pieceDataObj in allBoardData)
             {
@@ -132,26 +104,12 @@ public class NewGameState : GameState, IOnEventCallback
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
 
-            // Use a slight delay before transition to ensure rendering is complete
-            stateTransitionPending = true;
-            GameManager.Instance.StartCoroutine(DelayedStateTransition());
-        }
-    }
-
-    private void PlayStartSound()
-    {
-        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
-        if (audioSource != null)
-        {
-            AudioClip moveSound = Resources.Load<AudioClip>("Audio/game-start");
-            if (moveSound != null)
-                audioSource.PlayOneShot(moveSound);
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
     }
 
     public override void Exit()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
-        stateTransitionPending = false;
     }
 }
