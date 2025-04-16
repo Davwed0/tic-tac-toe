@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class InitState : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
+    private bool stateTransitionPending = false;
 
     public InitState(GameStateMachine stateMachine) : base(stateMachine) { }
 
@@ -17,31 +18,40 @@ public class InitState : GameState, IOnEventCallback
         // Register for Photon events
         PhotonNetwork.AddCallbackTarget(this);
 
+        // Both clients initialize the board
+        GameManager.Instance.board.InitializeBoard();
+        GameManager.Instance.board.InitializeSlots();
+        GameManager.Instance.board.InitializeScores();
+
         if (NetworkManager.Instance.IsMasterClient())
         {
-            Debug.Log("Master client detected. Loading game scene.");
+            Debug.Log("Master client detected. Loading game pieces.");
 
-            GameManager.Instance.board.InitializeBoard();
+            // Only master initializes pieces
             GameManager.Instance.board.InitializePieces();
-            GameManager.Instance.board.InitializeSlots();
-            GameManager.Instance.board.InitializeScores();
-
             GameManager.Instance.board.GenerateNewPieces();
 
             SendBoardData();
             PlayStartSound();
 
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
+            // Master client can proceed immediately, but with a small delay for UI consistency
+            stateTransitionPending = true;
+            GameManager.Instance.StartCoroutine(DelayedStateTransition());
         }
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
-
-            GameManager.Instance.board.InitializeBoard();
-            GameManager.Instance.board.InitializeSlots();
-            GameManager.Instance.board.InitializeScores();
-
             PlayStartSound();
+        }
+    }
+
+    private System.Collections.IEnumerator DelayedStateTransition()
+    {
+        yield return new WaitForSeconds(0.01f);
+        if (stateTransitionPending)
+        {
+            stateTransitionPending = false;
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
     }
 
@@ -87,10 +97,18 @@ public class InitState : GameState, IOnEventCallback
             object[] allBoardData = (object[])photonEvent.CustomData;
 
             Debug.Log("Received board data: " + allBoardData.Length + " pieces");
-            foreach (object pieceDataObj in allBoardData)
+
+            // Manually clear existing pieces
+            for (int playerIdx = 0; playerIdx < 2; playerIdx++)
             {
-                object[] pieceData = (object[])pieceDataObj;
-                Debug.Log($"Piece Data: Player: {pieceData[0]}, Index: {pieceData[1]}, Type: {pieceData[2]}");
+                for (int handIdx = 0; handIdx < GameManager.Instance.board.handSize; handIdx++)
+                {
+                    if (GameManager.Instance.board.chessPieces[handIdx, playerIdx] != null)
+                    {
+                        Object.Destroy(GameManager.Instance.board.chessPieces[handIdx, playerIdx].gameObject);
+                        GameManager.Instance.board.chessPieces[handIdx, playerIdx] = null;
+                    }
+                }
             }
 
             foreach (object pieceDataObj in allBoardData)
@@ -117,8 +135,9 @@ public class InitState : GameState, IOnEventCallback
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
 
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
-            PhotonNetwork.RemoveCallbackTarget(this);
+            // Use a slight delay before transition to ensure rendering is complete
+            stateTransitionPending = true;
+            GameManager.Instance.StartCoroutine(DelayedStateTransition());
         }
     }
 
@@ -136,5 +155,6 @@ public class InitState : GameState, IOnEventCallback
     public override void Exit()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
+        stateTransitionPending = false;
     }
 }

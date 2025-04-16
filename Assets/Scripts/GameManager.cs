@@ -14,10 +14,6 @@ public class GameManager : MonoBehaviour
     public int currentTurn = 0;
     public ChessPiece selectedPiece;
 
-    // Command history for undo/redo functionality
-    private Stack<ICommand> commandHistory = new Stack<ICommand>();
-    private Stack<ICommand> redoHistory = new Stack<ICommand>();
-
     private void Awake()
     {
         if (Instance == null)
@@ -44,33 +40,6 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         stateMachine.Update();
-    }
-
-    public void ExecuteCommand(ICommand command)
-    {
-        command.Execute();
-        commandHistory.Push(command);
-        redoHistory.Clear();
-    }
-
-    public void Undo()
-    {
-        if (commandHistory.Count > 0)
-        {
-            ICommand command = commandHistory.Pop();
-            command.Undo();
-            redoHistory.Push(command);
-        }
-    }
-
-    public void Redo()
-    {
-        if (redoHistory.Count > 0)
-        {
-            ICommand command = redoHistory.Pop();
-            command.Execute();
-            commandHistory.Push(command);
-        }
     }
 
     public void IncrementTurn()

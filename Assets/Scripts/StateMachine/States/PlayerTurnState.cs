@@ -10,6 +10,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
     private const byte PLACE_PIECE_EVENT = 2;
 
     private PlayerColor currentPlayer;
+    private bool canMakeMove = false;
 
     public PlayerTurnState(GameStateMachine stateMachine, PlayerColor player) : base(stateMachine)
     {
@@ -21,6 +22,12 @@ public class PlayerTurnState : GameState, IOnEventCallback
         Debug.Log("Entering PlayerTurn State");
 
         PhotonNetwork.AddCallbackTarget(this);
+
+        // Determine if the local player is the active player
+        PlayerColor localPlayerColor = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
+        canMakeMove = (localPlayerColor == currentPlayer);
+
+        Debug.Log($"Local player can move: {canMakeMove}");
 
         if (NetworkManager.Instance.IsMasterClient())
         {
@@ -35,23 +42,121 @@ public class PlayerTurnState : GameState, IOnEventCallback
         else
         {
             Debug.Log($"Waiting on Player {currentPlayer}'s turn");
-
         }
+
         GameManager.Instance.currentPlayer = currentPlayer;
         GameManager.Instance.selectedPiece = null;
     }
 
     public override void Update()
     {
+        // Only allow the current player to interact with the board
+        if (!canMakeMove)
+        {
+            return;
+        }
+
         // Update hitbox rendering based on selected piece
         if (GameManager.Instance.selectedPiece != null)
         {
             GameManager.Instance.RenderValidMoves();
+
+            // Check for player placing a piece
+            if (Input.GetMouseButtonDown(0))
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit))
+                {
+                    HitBox hitBox = hit.collider.GetComponent<HitBox>();
+                    if (hitBox != null && hitBox.isValid)
+                    {
+                        ChessPiece selectedPiece = GameManager.Instance.selectedPiece;
+                        int[] position = hitBox.GetPosition();
+                        int row = position[0];
+                        int col = position[1];
+
+                        // Place the piece locally
+                        PlacePiece(selectedPiece, hitBox);
+
+                        // Send the move to the other client
+                        SendMovePlacement(selectedPiece.index, (int)currentPlayer, row, col);
+
+                        // End the player's turn
+                        EndTurn();
+                    }
+                }
+            }
         }
         else
         {
             GameManager.Instance.DestroyHitBoxes();
         }
+    }
+
+    public void SelectPiece(ChessPiece piece)
+    {
+        if (canMakeMove)
+        {
+            GameManager.Instance.selectedPiece = piece;
+            GameManager.Instance.RenderValidMoves();
+        }
+    }
+
+    public void PlacePiece(ChessPiece piece, HitBox hitBox)
+    {
+        if (!canMakeMove) return;
+
+        int[] position = hitBox.GetPosition();
+        int row = position[0];
+        int col = position[1];
+        SendMovePlacement(piece.index, (int)currentPlayer, row, col);
+
+        // Check if there's a different piece to capture
+        ChessPiece existingPiece = hitBox.GetPiece();
+        if (existingPiece != null && existingPiece != piece)
+        {
+            int capturedIndex = existingPiece.index;
+            int capturedPlayer = (int)existingPiece.player;
+            Debug.Log($"Capturing piece: Player {capturedPlayer}, Index {capturedIndex}");
+            Object.Destroy(existingPiece.gameObject);
+            GameManager.Instance.board.chessPieces[capturedIndex, capturedPlayer] = null;
+        }
+
+        // If the piece is already on another hitbox, clear that reference
+        if (piece.transform.parent != null &&
+            piece.transform.parent.GetComponent<HitBox>() != null)
+        {
+            HitBox previousHitBox = piece.transform.parent.GetComponent<HitBox>();
+            previousHitBox.player = PlayerColor.EMPTY;
+        }
+
+        // Update piece position
+        piece.isOnBoard = true;
+        piece.transform.position = hitBox.transform.position;
+        piece.transform.SetParent(hitBox.transform);
+        hitBox.player = currentPlayer;
+
+        Debug.Log($"Placed piece {piece.index} for player {currentPlayer} at [{row},{col}]");
+        EndTurn();
+    }
+
+    public void PlacePiece(ChessPiece piece, int row, int col)
+    {
+        if (!canMakeMove) return;
+
+        HitBox targetBox = GameManager.Instance.board.hitBoxes[row, col];
+        PlacePiece(piece, targetBox);
+    }
+
+    private void SendMovePlacement(int pieceIndex, int player, int row, int col)
+    {
+        int[] moveData = new int[] { pieceIndex, player, row, col };
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions { Receivers = ReceiverGroup.Others };
+        PhotonNetwork.RaiseEvent(PLACE_PIECE_EVENT, moveData, raiseEventOptions, SendOptions.SendReliable);
+
+        Debug.Log($"Sent move placement: Piece {pieceIndex}, Player {player}, Position [{row},{col}]");
     }
 
     private void SendPieceData(PieceType newPiece)
@@ -128,6 +233,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
     public override void Exit()
     {
         GameManager.Instance.DestroyHitBoxes();
+        PhotonNetwork.RemoveCallbackTarget(this);
     }
 
     public void EndTurn()

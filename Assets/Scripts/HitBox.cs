@@ -5,6 +5,11 @@ public class HitBox : MonoBehaviour
     public PlayerColor player = PlayerColor.EMPTY;
     private int row, column;
     private GameObject tile;
+    public bool isValid { get; set; } = false;
+
+    // Add public properties to access row and column
+    public int Row { get { return this.row; } }
+    public int Col { get { return this.column; } }
 
     private void Start()
     {
@@ -29,9 +34,11 @@ public class HitBox : MonoBehaviour
 
         if (selectedPiece != null)
         {
-            // Create and execute the command
-            ICommand command = new PlacePieceCommand(selectedPiece, this);
-            GameManager.Instance.ExecuteCommand(command);
+            PlayerTurnState state = GameManager.Instance.stateMachine.CurrentState as PlayerTurnState;
+            if (state != null)
+            {
+                state.PlacePiece(selectedPiece, this);
+            }
         }
     }
 
@@ -39,6 +46,7 @@ public class HitBox : MonoBehaviour
     {
         GetComponent<Collider>().enabled = true;
         tile.GetComponent<Renderer>().enabled = true;
+        isValid = true;
 
         if (player != PlayerColor.EMPTY)
         {
@@ -50,6 +58,7 @@ public class HitBox : MonoBehaviour
     {
         GetComponent<Collider>().enabled = false;
         tile.GetComponent<Renderer>().enabled = false;
+        isValid = false;
     }
 
     public ChessPiece GetPiece()
@@ -71,5 +80,6 @@ public class HitBox : MonoBehaviour
     public void Reset()
     {
         player = PlayerColor.EMPTY;
+        isValid = false;
     }
 }

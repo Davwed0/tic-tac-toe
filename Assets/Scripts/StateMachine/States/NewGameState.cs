@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class NewGameState : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
+    private bool stateTransitionPending = false;
 
     public NewGameState(GameStateMachine stateMachine) : base(stateMachine) { }
 
@@ -28,14 +29,26 @@ public class NewGameState : GameState, IOnEventCallback
 
             PlayStartSound();
 
-            // Master client can proceed immediately
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
+            // Master client can proceed immediately, but with a small delay for UI consistency
+            stateTransitionPending = true;
+            GameManager.Instance.StartCoroutine(DelayedStateTransition());
         }
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
+            GameManager.Instance.board.Reset();
 
             PlayStartSound();
+        }
+    }
+
+    private System.Collections.IEnumerator DelayedStateTransition()
+    {
+        yield return new WaitForSeconds(0.01f);
+        if (stateTransitionPending)
+        {
+            stateTransitionPending = false;
+            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
     }
 
@@ -81,10 +94,18 @@ public class NewGameState : GameState, IOnEventCallback
             object[] allBoardData = (object[])photonEvent.CustomData;
 
             Debug.Log("Received board data: " + allBoardData.Length + " pieces");
-            foreach (object pieceDataObj in allBoardData)
+
+            // Manually clear existing pieces
+            for (int playerIdx = 0; playerIdx < 2; playerIdx++)
             {
-                object[] pieceData = (object[])pieceDataObj;
-                Debug.Log($"Piece Data: Player: {pieceData[0]}, Index: {pieceData[1]}, Type: {pieceData[2]}");
+                for (int handIdx = 0; handIdx < GameManager.Instance.board.handSize; handIdx++)
+                {
+                    if (GameManager.Instance.board.chessPieces[handIdx, playerIdx] != null)
+                    {
+                        Object.Destroy(GameManager.Instance.board.chessPieces[handIdx, playerIdx].gameObject);
+                        GameManager.Instance.board.chessPieces[handIdx, playerIdx] = null;
+                    }
+                }
             }
 
             foreach (object pieceDataObj in allBoardData)
@@ -96,8 +117,8 @@ public class NewGameState : GameState, IOnEventCallback
 
                 float hitBoxSize = GameManager.Instance.board.hitBoxPrefab.transform.localScale.x;
                 float totalGap = hitBoxSize + GameManager.Instance.board.hitBoxGap;
-                float offsetX = GameManager.Instance.board.boardSize * totalGap / 2 + GameManager.Instance.board.pad;
-                float offsetY = GameManager.Instance.board.handSize * hitBoxSize / 2;
+                float offsetX = (GameManager.Instance.board.boardSize * totalGap) / 2 + GameManager.Instance.board.pad;
+                float offsetY = (GameManager.Instance.board.handSize * hitBoxSize) / 2;
 
                 int playerIdx = (int)playerColor;
                 float yPos = playerIdx == 0 ?
@@ -111,9 +132,9 @@ public class NewGameState : GameState, IOnEventCallback
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
 
-            stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
-
-            PhotonNetwork.RemoveCallbackTarget(this);
+            // Use a slight delay before transition to ensure rendering is complete
+            stateTransitionPending = true;
+            GameManager.Instance.StartCoroutine(DelayedStateTransition());
         }
     }
 
@@ -131,5 +152,6 @@ public class NewGameState : GameState, IOnEventCallback
     public override void Exit()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
+        stateTransitionPending = false;
     }
 }

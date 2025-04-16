@@ -38,15 +38,21 @@ public class ChessPiece : MonoBehaviour
     {
         if (GameManager.Instance.currentPlayer == player && GameManager.Instance.playerColor == GameManager.Instance.currentPlayer)
         {
-            ICommand command = new SelectPieceCommand(this);
-            GameManager.Instance.ExecuteCommand(command);
+            PlayerTurnState state = GameManager.Instance.stateMachine.CurrentState as PlayerTurnState;
+            if (state != null)
+            {
+                state.SelectPiece(this);
+            }
         }
     }
 
     public void PlacePiece(HitBox hitBox)
     {
-        ICommand command = new PlacePieceCommand(this, hitBox);
-        GameManager.Instance.ExecuteCommand(command);
+        PlayerTurnState state = GameManager.Instance.stateMachine.CurrentState as PlayerTurnState;
+        if (state != null)
+        {
+            state.PlacePiece(this, hitBox);
+        }
     }
 
     public List<int[]> ValidMoves()
