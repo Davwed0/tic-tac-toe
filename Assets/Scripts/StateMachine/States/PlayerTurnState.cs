@@ -67,7 +67,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
     {
         if (photonEvent.Code == SEND_PIECE_EVENT && !NetworkManager.Instance.IsMasterClient())
         {
-            PieceType newPieceType = (PieceType)photonEvent.CustomData;
+            PieceType newPieceType = (PieceType)(int)photonEvent.CustomData;
             Debug.Log("Received piece data from master client");
             Debug.Log($"Piece Data: Player: {newPieceType}");
 
@@ -83,7 +83,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
             int col = data[3];
             Debug.Log($"Received piece placement: Piece {index}, Player {player}, Position [{row},{col}]");
 
-            // Update the board on the receiving client
             PlayerColor placingPlayer = (PlayerColor)player;
             ChessPiece placedPiece = GameManager.Instance.board.chessPieces[index, (int)placingPlayer];
 
@@ -121,16 +120,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
                     Debug.Log($"Successfully moved piece {index} for player {placingPlayer} to [{row},{col}]");
                 }
-                else
-                {
-                    Debug.LogWarning($"HitBox at position [{row},{col}] not found for player {placingPlayer}");
-                }
             }
-            else
-            {
-                Debug.LogWarning($"Piece {index} not found for player {placingPlayer}, player enum value: {(int)placingPlayer}");
-            }
-
             EndTurn();
         }
     }
@@ -148,12 +138,15 @@ public class PlayerTurnState : GameState, IOnEventCallback
         var result = GameManager.Instance.board.CheckWin();
         PlayerColor winner = result.winner;
         List<Vector2Int> positions = result.positions;
+        Debug.Log($"Winner: {winner}");
         if (winner != PlayerColor.EMPTY)
         {
+            Debug.Log($"Game Over! Player {winner} has won!");
             stateMachine.ChangeState(new GameOverState(stateMachine, winner, positions));
         }
         else
         {
+            Debug.Log($"Player {nextPlayer}'s turn started");
             GameManager.Instance.board.CheckPieceQueues();
             GameManager.Instance.IncrementTurn();
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, nextPlayer));

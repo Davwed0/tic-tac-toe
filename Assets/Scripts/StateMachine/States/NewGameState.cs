@@ -4,12 +4,11 @@ using Photon.Realtime;
 using ExitGames.Client.Photon;
 using System.Collections.Generic;
 
-public class NewGame : GameState, IOnEventCallback
+public class NewGameState : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
-    private bool receivedPieces = false;
 
-    public NewGame(GameStateMachine stateMachine) : base(stateMachine) { }
+    public NewGameState(GameStateMachine stateMachine) : base(stateMachine) { }
 
     public override void Enter()
     {
@@ -21,6 +20,7 @@ public class NewGame : GameState, IOnEventCallback
         if (NetworkManager.Instance.IsMasterClient())
         {
             Debug.Log("Master client detected. Loading game scene.");
+            GameManager.Instance.board.Reset();
 
             GameManager.Instance.board.GenerateNewPieces();
             // Serialize and send piece data to other clients
@@ -35,8 +35,6 @@ public class NewGame : GameState, IOnEventCallback
         {
             Debug.Log("Not master client. Waiting for game to start.");
 
-            // Non-master clients wait for piece data
-            // The transition will happen after receiving the piece data
             PlayStartSound();
         }
     }
@@ -98,8 +96,8 @@ public class NewGame : GameState, IOnEventCallback
 
                 float hitBoxSize = GameManager.Instance.board.hitBoxPrefab.transform.localScale.x;
                 float totalGap = hitBoxSize + GameManager.Instance.board.hitBoxGap;
-                float offsetX = (GameManager.Instance.board.boardSize * totalGap) / 2 + GameManager.Instance.board.pad;
-                float offsetY = (GameManager.Instance.board.handSize * hitBoxSize) / 2;
+                float offsetX = GameManager.Instance.board.boardSize * totalGap / 2 + GameManager.Instance.board.pad;
+                float offsetY = GameManager.Instance.board.handSize * hitBoxSize / 2;
 
                 int playerIdx = (int)playerColor;
                 float yPos = playerIdx == 0 ?
@@ -112,8 +110,6 @@ public class NewGame : GameState, IOnEventCallback
                 GameManager.Instance.board.chessPieces[handIndex, playerIdx] =
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
-
-            receivedPieces = true;
 
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
 

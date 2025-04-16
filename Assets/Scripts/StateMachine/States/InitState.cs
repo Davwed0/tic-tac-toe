@@ -7,7 +7,6 @@ using System.Collections.Generic;
 public class InitState : GameState, IOnEventCallback
 {
     private const byte SEND_BOARD_EVENT = 1;
-    private bool receivedPieces = false;
 
     public InitState(GameStateMachine stateMachine) : base(stateMachine) { }
 
@@ -29,12 +28,9 @@ public class InitState : GameState, IOnEventCallback
 
             GameManager.Instance.board.GenerateNewPieces();
 
-            // Serialize and send piece data to other clients
             SendBoardData();
-
             PlayStartSound();
 
-            // Master client can proceed immediately
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
         else
@@ -45,8 +41,6 @@ public class InitState : GameState, IOnEventCallback
             GameManager.Instance.board.InitializeSlots();
             GameManager.Instance.board.InitializeScores();
 
-            // Non-master clients wait for piece data
-            // The transition will happen after receiving the piece data
             PlayStartSound();
         }
     }
@@ -123,10 +117,7 @@ public class InitState : GameState, IOnEventCallback
                     GameManager.Instance.board.CreatePiece(xPos, yPos + yPositionOffset, pieceType, handIndex, playerColor);
             }
 
-            receivedPieces = true;
-
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
-
             PhotonNetwork.RemoveCallbackTarget(this);
         }
     }
