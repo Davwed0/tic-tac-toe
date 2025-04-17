@@ -100,7 +100,6 @@ public class PlayerTurnState : GameState, IOnEventCallback
         int[] position = hitBox.GetPosition();
         int row = position[0];
         int col = position[1];
-        SendMovePlacement(piece.index, (int)currentPlayer, row, col);
 
         ChessPiece existingPiece = hitBox.GetPiece();
         if (existingPiece != null && existingPiece != piece)
@@ -125,13 +124,41 @@ public class PlayerTurnState : GameState, IOnEventCallback
             previousHitBox.player = PlayerColor.EMPTY;
         }
 
+        // Animate movement
         piece.isOnBoard = true;
-        piece.transform.position = hitBox.transform.position;
-        piece.transform.SetParent(hitBox.transform);
-        hitBox.player = currentPlayer;
+        Vector3 startPosition = piece.transform.position;
+        Vector3 targetPosition = hitBox.transform.position;
+        float distance = Vector3.Distance(startPosition, targetPosition);
+        float movementSpeed = 125f; // Units per second
+        float duration = distance / movementSpeed;
 
-        Debug.Log($"Placed piece {piece.index} for player {currentPlayer} at [{row},{col}]");
-        EndTurn();
+        piece.transform.parent = null; // Detach during animation
+
+        MonoBehaviour mb = GameManager.Instance;
+        mb.StartCoroutine(AnimateMovement(piece, startPosition, targetPosition, duration, () =>
+        {
+            // Callback after animation completes
+            piece.transform.SetParent(hitBox.transform);
+            hitBox.player = currentPlayer;
+            SendMovePlacement(piece.index, (int)currentPlayer, row, col);
+            Debug.Log($"Placed piece {piece.index} for player {currentPlayer} at [{row},{col}]");
+            EndTurn();
+        }));
+    }
+
+    private System.Collections.IEnumerator AnimateMovement(ChessPiece piece, Vector3 start, Vector3 target, float duration, System.Action onComplete)
+    {
+        float elapsed = 0;
+        while (elapsed < duration)
+        {
+            piece.transform.position = Vector3.Lerp(start, target, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Ensure final position is exact
+        piece.transform.position = target;
+        onComplete?.Invoke();
     }
 
     public void PlacePiece(ChessPiece piece, int row, int col)
