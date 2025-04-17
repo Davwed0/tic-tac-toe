@@ -7,11 +7,24 @@ public class IsometricCameraMovement : MonoBehaviour
     [SerializeField] private float minZoom = 5f;
     [SerializeField] private float maxZoom = 15f;
 
-    private float targetAngle = 225f;
+    private float targetAngle = 0f;
     private float currentAngle = 0f;
 
     private const float SNAP_ANGLE = 45f;
     private const float TILT_ANGLE = 26.565f;
+
+    private void Start()
+    {
+        PlayerColor player = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
+        if (player == PlayerColor.WHITE)
+        {
+            targetAngle = 225f;
+        }
+        else
+        {
+            targetAngle = 45f;
+        }
+    }
 
     private void Update()
     {

@@ -8,7 +8,7 @@ public class GameManager : MonoBehaviour
 
     public Board board;
     public GameStateMachine stateMachine;
-    public PlayerColor playerColor = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
+    public PlayerColor playerColor;
 
     public PlayerColor currentPlayer = PlayerColor.WHITE;
     public int currentTurn = 0;
@@ -29,6 +29,7 @@ public class GameManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        playerColor = NetworkManager.Instance.IsMasterClient() ? PlayerColor.WHITE : PlayerColor.BLACK;
     }
 
     private void Start()

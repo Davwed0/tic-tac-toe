@@ -275,11 +275,6 @@ public class Board : MonoBehaviour
         {
             for (int col = 0; col < boardSize; col++)
             {
-                ChessPiece piece = hitBoxes[row, col].GetPiece();
-                if (piece != null)
-                {
-                    Destroy(piece.gameObject);
-                }
                 hitBoxes[row, col].Reset();
                 gridBoxes[row, col].GetComponent<Renderer>().material = ((row + col) % 2 == 0) ? blackMaterial : whiteMaterial;
 
