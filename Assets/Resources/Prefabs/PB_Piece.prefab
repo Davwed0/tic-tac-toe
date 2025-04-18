@@ -29,8 +29,8 @@ Transform:
   m_GameObject: {fileID: 4827507673951582152}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
+  m_LocalPosition: {x: 0, y: 0.3, z: 0}
+  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -51,12 +51,12 @@ MonoBehaviour:
   player: 0
   isOnBoard: 0
   index: 0
-  pawnMesh: {fileID: -2432090755550338912, guid: 62f6e370f1d82a641b73d93a2918692a, type: 3}
-  rookMesh: {fileID: -2432090755550338912, guid: 0cc27c321c6d0674ea36ecdbcb769ff5, type: 3}
-  knightMesh: {fileID: -2432090755550338912, guid: ea976ab49957c1d45a2e520edd517ebd, type: 3}
-  bishopMesh: {fileID: -2432090755550338912, guid: f64432857f590814184b5f9e481d24c7, type: 3}
-  queenMesh: {fileID: -2432090755550338912, guid: 04cd39d7cb50b074f8151a04028d4275, type: 3}
-  kingMesh: {fileID: -2432090755550338912, guid: 3863e6119abdff64f8917b58c42e7a05, type: 3}
+  pawnMesh: {fileID: -2432090755550338912, guid: aacc72a1c86cb6349a58ff0d3de5e886, type: 3}
+  rookMesh: {fileID: -2432090755550338912, guid: c8bb0660b7bb8eb43bb9bc443e756853, type: 3}
+  knightMesh: {fileID: -2432090755550338912, guid: 9ac2953805466f447824c6fb1485c5d4, type: 3}
+  bishopMesh: {fileID: -2432090755550338912, guid: e1febf339cd6d924093e4f922b56cf0e, type: 3}
+  queenMesh: {fileID: -2432090755550338912, guid: 1a7f89251a742524abfd70a5d6bbb059, type: 3}
+  kingMesh: {fileID: -2432090755550338912, guid: 7959310dd3993904190a38c82d72fc39, type: 3}
   whiteMaterial: {fileID: 2100000, guid: f267b0ac368618049ac2b28e1c09a528, type: 2}
   blackMaterial: {fileID: 2100000, guid: e16375753d893204bbabbec30d44daf9, type: 2}
   hoverMaterial: {fileID: 2100000, guid: a292970e0d504f44aa0242231a854ee1, type: 2}
