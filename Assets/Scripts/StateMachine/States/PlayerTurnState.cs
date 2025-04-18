@@ -227,6 +227,11 @@ public class PlayerTurnState : GameState, IOnEventCallback
                         Debug.Log($"Capturing piece: Player {capturedPlayer}, Index {capturedIndex}");
                         Object.Destroy(existingPiece.gameObject);
                         GameManager.Instance.board.chessPieces[capturedIndex, capturedPlayer] = null;
+                        GameManager.Instance.PlayAudio("capture");
+                    }
+                    else
+                    {
+                        GameManager.Instance.PlayAudio("move-self");
                     }
 
                     if (placedPiece.transform.parent != null &&
@@ -244,6 +249,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
                     Debug.Log($"Successfully moved piece {index} for player {placingPlayer} to [{row},{col}]");
                 }
             }
+
             EndTurn();
         }
     }
