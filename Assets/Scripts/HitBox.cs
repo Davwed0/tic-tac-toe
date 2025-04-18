@@ -10,7 +10,7 @@ public class HitBox : MonoBehaviour
     public int Row { get { return this.row; } }
     public int Col { get { return this.column; } }
 
-    private void Start()
+    private void Awake()
     {
         GetComponent<Collider>().enabled = false;
         tile = transform.GetChild(0).gameObject;

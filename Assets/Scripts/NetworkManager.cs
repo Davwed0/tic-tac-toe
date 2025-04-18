@@ -24,13 +24,16 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        if (PhotonNetwork.IsMasterClient)
+        if (GameManager.Instance != null)
         {
-            GameManager.Instance.playerColor = PlayerColor.WHITE;
-        }
-        else
-        {
-            GameManager.Instance.playerColor = PlayerColor.BLACK;
+            if (PhotonNetwork.IsMasterClient)
+            {
+                GameManager.Instance.playerColor = PlayerColor.WHITE;
+            }
+            else
+            {
+                GameManager.Instance.playerColor = PlayerColor.BLACK;
+            }
         }
     }
 

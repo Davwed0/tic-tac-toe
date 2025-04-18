@@ -11,6 +11,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
     private PlayerColor currentPlayer;
     private bool canMakeMove = false;
+    private bool moving = false;
 
     public PlayerTurnState(GameStateMachine stateMachine, PlayerColor player) : base(stateMachine)
     {
@@ -51,7 +52,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
     {
         if (!canMakeMove) return;
 
-        if (GameManager.Instance.selectedPiece != null)
+        if (GameManager.Instance.selectedPiece != null && !moving)
         {
             GameManager.Instance.RenderValidMoves();
 
@@ -148,6 +149,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
     private System.Collections.IEnumerator AnimateMovement(ChessPiece piece, Vector3 start, Vector3 target, float duration, System.Action onComplete)
     {
+        moving = true;
         float elapsed = 0;
         while (elapsed < duration)
         {
@@ -158,6 +160,7 @@ public class PlayerTurnState : GameState, IOnEventCallback
 
         // Ensure final position is exact
         piece.transform.position = target;
+        moving = false;
         onComplete?.Invoke();
     }
 
