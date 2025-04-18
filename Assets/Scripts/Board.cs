@@ -127,7 +127,7 @@ public class Board : MonoBehaviour
 
     public ChessPiece CreatePiece(float xPos, float yPos, PieceType pieceType, int index, PlayerColor player = PlayerColor.WHITE)
     {
-        GameObject chessPieceObject = Instantiate(piecePrefab, new Vector3(xPos, 0, yPos), Quaternion.identity);
+        GameObject chessPieceObject = Instantiate(piecePrefab, new Vector3(xPos, 0.2f, yPos), Quaternion.identity);
         if (player == PlayerColor.BLACK)
         {
             chessPieceObject.transform.Rotate(new Vector3(0, 90, 0));
