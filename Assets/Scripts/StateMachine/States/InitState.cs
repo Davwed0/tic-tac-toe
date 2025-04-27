@@ -15,11 +15,11 @@ public class InitState : GameState, IOnEventCallback
         Debug.Log("Entering Init State");
 
         PhotonNetwork.AddCallbackTarget(this);
-        GameManager.Instance.PlayAudio("game-start");
 
         GameManager.Instance.board.InitializeBoard();
         GameManager.Instance.board.InitializeSlots();
         GameManager.Instance.board.InitializeScores();
+        GameManager.Instance.PlayAudio("game-start");
 
         if (NetworkManager.Instance.IsMasterClient())
         {
@@ -34,6 +34,7 @@ public class InitState : GameState, IOnEventCallback
         else
         {
             Debug.Log("Not master client. Waiting for game to start.");
+            GameManager.Instance.PlayAudio("game-start");
         }
     }
 

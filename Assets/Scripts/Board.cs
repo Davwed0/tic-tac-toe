@@ -29,6 +29,8 @@ public class Board : MonoBehaviour
 
     private void Awake()
     {
+        boardSize = PlayerPrefs.GetInt("boardSize", 3);
+        winLength = PlayerPrefs.GetInt("winLength", 3);
         hitBoxes = new HitBox[boardSize, boardSize];
         gridBoxes = new GameObject[boardSize, boardSize];
         chessPieces = new ChessPiece[handSize, 2];

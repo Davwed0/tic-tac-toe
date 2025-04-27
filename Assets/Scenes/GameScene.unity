@@ -828,7 +828,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5faab45fdbe75c478b37a1926288d45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boardSize: 3
+  boardSize: 4
   handSize: 4
   hitBoxGap: 0
   pad: 3
