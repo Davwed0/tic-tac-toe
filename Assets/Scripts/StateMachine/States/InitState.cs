@@ -13,13 +13,23 @@ public class InitState : GameState, IOnEventCallback
     public override void Enter()
     {
         Debug.Log("Entering Init State");
-
+        
         PhotonNetwork.AddCallbackTarget(this);
 
         GameManager.Instance.board.InitializeBoard();
         GameManager.Instance.board.InitializeSlots();
         GameManager.Instance.board.InitializeScores();
-        GameManager.Instance.PlayAudio("game-start");
+
+        if (GameManager.Instance != null) 
+        {
+            GameManager.Instance.PlayAudio("game-start");
+            Debug.Log("Attempted to play 'game-start' audio");
+        }
+        else 
+        {
+            Debug.LogWarning("GameManager instance is null, couldn't play audio");
+        }
+
 
         if (NetworkManager.Instance.IsMasterClient())
         {
@@ -28,13 +38,15 @@ public class InitState : GameState, IOnEventCallback
             GameManager.Instance.board.InitializePieces();
 
             SendBoardData();
+            GameManager.Instance.PlayAudio("game-start");
 
             stateMachine.ChangeState(new PlayerTurnState(stateMachine, PlayerColor.WHITE));
         }
         else
         {
-            Debug.Log("Not master client. Waiting for game to start.");
             GameManager.Instance.PlayAudio("game-start");
+
+            Debug.Log("Not master client. Waiting for game to start.");
         }
     }
 

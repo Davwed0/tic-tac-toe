@@ -116,12 +116,31 @@ public class GameManager : MonoBehaviour
 
     public void PlayAudio(string audioName)
     {
-        AudioSource audioSource = Camera.main.GetComponent<AudioSource>();
-        if (audioSource != null)
+        StartCoroutine(PlayAudioCoroutine(audioName));
+    }
+    
+    private IEnumerator PlayAudioCoroutine(string audioName)
+    {
+        AudioSource audioSource = Camera.main?.GetComponent<AudioSource>();
+        if (audioSource == null)
         {
-            AudioClip moveSound = Resources.Load<AudioClip>($"Audio/{audioName}");
-            if (moveSound != null)
-                audioSource.PlayOneShot(moveSound);
+            Debug.LogWarning("No AudioSource found on main camera");
+            yield break;
         }
+        
+        AudioClip audioClip = Resources.Load<AudioClip>($"Audio/{audioName}");
+        if (audioClip == null)
+        {
+            Debug.LogWarning($"Audio clip '{audioName}' not found in Resources/Audio folder");
+            yield break;
+        }
+        
+        // Wait for a frame to ensure everything is initialized
+        yield return null;
+        
+        audioSource.PlayOneShot(audioClip);
+        
+        // Wait until the clip has finished playing
+        yield return new WaitForSeconds(0.1f); // Small buffer before allowing another sound
     }
 }
